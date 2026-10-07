@@ -366,7 +366,7 @@ function renderLibrary() {
     <div id="libList">${libListHTML(q, g)}</div>`;
 }
 function exThumb(e) {
-  return e?.image ? `<img class="ex-thumb" src="${esc(e.image)}" alt="" loading="lazy">` : '';
+  return e?.image ? `<span class="ex-thumb"><img src="${esc(e.image)}" alt="" loading="lazy"></span>` : '';
 }
 function libListHTML(q, g) {
   const list = filterExercises(q, g);

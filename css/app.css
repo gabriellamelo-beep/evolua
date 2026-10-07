@@ -281,10 +281,11 @@ html.is-running .tabbar { display: none; }
 .ex-detail, .mus-detail, .sess { display: flex; flex-direction: column; gap: 14px; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .ex-img { width: 100%; border-radius: 14px; max-height: 260px; object-fit: contain; background: #f4f3f0; }
-.ex-thumb { flex: none; width: 48px; height: 48px; border-radius: 50%; object-fit: cover; object-position: 50% 62%; background: #f4f3f0; }
+.ex-thumb { flex: none; position: relative; width: 48px; height: 48px; border-radius: 50%; overflow: hidden; background: #f4f3f0; }
+/* as animações são cenas 4:3; o zoom enquadra a figura no círculo */
+.ex-thumb img, .ex-anim img { position: absolute; left: 50%; top: 50%; width: 175%; max-width: none; transform: translate(-50%, -60%); }
 .ed-row .ex-thumb { width: 40px; height: 40px; margin-right: 6px; }
-.ex-anim { flex: none; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; overflow: hidden; background: #f4f3f0; cursor: pointer; }
-.ex-anim img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; display: block; }
+.ex-anim { flex: none; position: relative; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; overflow: hidden; background: #f4f3f0; cursor: pointer; }
 .ex-head-main { flex: 1; min-width: 0; }
 .ex-instr { color: var(--text-2); }
 .mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

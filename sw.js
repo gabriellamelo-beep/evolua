@@ -1,7 +1,6 @@
 /* Service worker: funciona offline com cache do app. Altere VERSION a cada publicação. */
-const VERSION = 'evolua-v6';
+const VERSION = 'evolua-v7';
 const ASSETS = ['./', 'index.html', 'css/app.css', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
-  'img/ex/leg-press-45.gif', 'img/ex/panturrilha-leg.gif', 'img/ex/cadeira-extensora.gif',
   'js/data.js', 'js/store.js', 'js/ui.js', 'js/body.js', 'js/charts.js', 'js/app.js', 'js/runner.js', 'js/runs.js', 'js/corpo.js', 'js/main.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
