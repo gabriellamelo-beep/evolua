@@ -278,8 +278,17 @@ def draw_torso(cv, hip, shoulder, focus, t):
     cv.tapered(hip, shoulder, 17, 15, TOP)
     cv.circle(add(shoulder, mul(ant, 3)), 10, TOP)
     cv.circle(add(hip, mul(ant, -3)), 15, HIP_C)
+    post = mul(ant, -1)
     if 'lower' in focus:
-        muscle(cv, hip, shoulder, mul(ant, -1), 9, 5.5, 4.5, t * focus['lower'], 0.15, 0.55)
+        muscle(cv, hip, shoulder, post, 9, 5.5, 4.5, t * focus['lower'], 0.15, 0.55)
+    if 'back' in focus:
+        muscle(cv, hip, shoulder, post, 8, 6, 8, t * focus['back'], 0.35, 0.82)
+    if 'traps' in focus:
+        muscle(cv, hip, shoulder, post, 6, 5, 6, t * focus['traps'], 0.84, 1.1)
+    if 'chest' in focus:
+        muscle(cv, hip, shoulder, ant, 8, 6.5, 8, t * focus['chest'], 0.6, 0.92)
+    if 'abs' in focus:
+        muscle(cv, hip, shoulder, ant, 9, 5, 5.5, t * focus['abs'], 0.12, 0.56)
 
 
 def draw_leg(cv, L, near, focus, t):
@@ -312,11 +321,19 @@ def draw_leg(cv, L, near, focus, t):
     cv.line(add(heel, mul(sole, 6)), add(tip, mul(sole, 4.5)), 2.6, (60, 62, 70))
 
 
-def draw_arm(cv, A, near):
+def draw_arm(cv, A, near, focus=None, t=0.0):
     skin = SKIN_N if near else SKIN_F
     sh, el, hand = A['sh'], A['elbow'], A['hand']
     cv.capsule(sh, el, 7.5 if near else 7, skin)
     cv.capsule(el, hand, 6.5 if near else 6, skin)
+    if near and focus:
+        a_ant = ant_of(sh, el)
+        if 'delt' in focus:
+            muscle(cv, sh, el, a_ant, 0.5, 8.5, 6.5, t * focus['delt'], -0.06, 0.3)
+        if 'biceps' in focus:
+            muscle(cv, sh, el, a_ant, 2.6, 5, 3.8, t * focus['biceps'], 0.3, 0.86)
+        if 'triceps' in focus:
+            muscle(cv, sh, el, mul(a_ant, -1), 2.6, 5, 3.8, t * focus['triceps'], 0.24, 0.84)
     cv.circle(hand, 7 if near else 6.5, skin, OUTLINE, 1.6)
 
 
@@ -357,7 +374,7 @@ def figure(cv, J, hooks=None, focus=None, t=0.0):
     draw_head(cv, sh, nd, J.get('head_tilt', 0))
     draw_leg(cv, Ln, True, focus, t)
     if 'front_leg' in hooks: hooks['front_leg'](cv)
-    draw_arm(cv, An, True)
+    draw_arm(cv, An, True, focus, t)
     if 'front' in hooks: hooks['front'](cv)
 
 
@@ -917,6 +934,692 @@ def ex_single_calf(p):
     J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, f, knee),
          'Lf': leg(hf, fa, None, ik(hf, fa, TH, SH, -1), foot_rot=30), 'An': An, 'Af': Af}
     return J, {'back': back, 'front': lambda cv: dumbbell_side(cv, An['hand'])}, {'calf': 1}
+
+
+# ================= etapa 2: tronco e braços =================
+def deg(vec): return math.degrees(math.atan2(vec[1], vec[0]))
+
+
+def limb(sh, a_up, a_fore):
+    """Braço por ângulos absolutos na tela (0 = frente, 90 = baixo, -90 = cima, 180 = trás)."""
+    el = add(sh, polar(a_up, UA))
+    return {'sh': sh, 'elbow': el, 'hand': add(el, polar(a_fore, FA))}
+
+
+def far_of(A, off=(-6, -5)):
+    return {k_: add(val, off) for k_, val in A.items()}
+
+
+def standing_body(ankle_x=226, a_b=2, a_s=2, a_t=2):
+    ankle = v(ankle_x, ANK_Y)
+    knee, hip, sh = stand_chain(ankle, a_s, a_t, a_b)
+    return ankle, knee, hip, sh
+
+
+def seated_legs(hip):
+    knee = add(hip, (TH - 3, 6))
+    return leg(hip, v(knee[0] + 8, ANK_Y), (1, 0), knee)
+
+
+SEAT_HIP_Y = ANK_Y - SH - 5
+
+
+def stool(cv, x0, x1):
+    bench(cv, x0, x1, SEAT_HIP_Y + 14)
+
+
+def backrest(cv, hip, ang, length=96):
+    """Encosto atrás do tronco, inclinado ang graus da vertical (negativo = reclinado)."""
+    d = polar(-90 + ang); n = mul(perp(d), -1)
+    c = add(add(hip, mul(d, length * 0.55)), mul(n, 18))
+    cv.rect_along(c, d, length * 0.55, 8, PAD, PAD_HI, 2)
+    cv.bar(add(c, mul(d, -length * 0.4)), v(c[0] - 6, FLOOR_Y), 8)
+
+
+def barbell_at(hand, r=28):
+    return {'back': lambda cv: plate_disc(cv, hand, r), 'front': lambda cv: bar_end(cv, hand)}
+
+
+def dumbbells(An, Af):
+    return {'far_hand': lambda cv: dumbbell_side(cv, Af['hand'], True), 'front': lambda cv: dumbbell_side(cv, An['hand'])}
+
+
+def merge(*hs):
+    out = {}
+    for h in hs:
+        for k_, f in h.items():
+            if k_ in out:
+                g = out[k_]; out[k_] = (lambda a, b: lambda cv: (a(cv), b(cv)))(g, f)
+            else:
+                out[k_] = f
+    return out
+
+
+def cable(a, b):
+    return lambda cv: cv.line(a, b, 2.5, (60, 62, 68))
+
+
+def tower(x, top=36, p=0.0, w=34):
+    def draw(cv):
+        column(cv, x, top, w)
+        y = stack(cv, x, 300, 9, 40 * p, 3, w - 10)
+        cv.line(v(x, top), v(x, y), 2.5, (60, 62, 68))
+    return draw
+
+
+def pulley(c):
+    return lambda cv: cv.circle(c, 7, FRAME_C, FRAME_D, 2)
+
+
+# ---------- bíceps ----------
+@exercise('rosca-direta', k=0.9)
+def ex_curl(p):
+    ankle, knee, hip, sh = standing_body()
+    An = limb(sh, 86, lerp(82, -62, p))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An}
+    return J, barbell_at(An['hand'], 26), {'biceps': 1}
+
+
+@exercise('rosca-alternada', k=0.9)
+def ex_curl_alt(p):
+    ankle, knee, hip, sh = standing_body()
+    An = limb(sh, 86, lerp(82, -62, p))
+    Af = far_of(limb(sh, 86, lerp(82, -62, 1 - p)))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An, 'Af': Af}
+    return J, dumbbells(An, Af), {'biceps': 1}
+
+
+@exercise('rosca-martelo', k=0.9)
+def ex_hammer(p):
+    ankle, knee, hip, sh = standing_body()
+    fa = lerp(82, -62, p)
+    An = limb(sh, 86, fa); Af = far_of(An)
+    ax = perp(polar(fa))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An, 'Af': Af}
+    return J, {'far_hand': lambda cv: dumbbell_upright(cv, Af['hand'], ax), 'front': lambda cv: dumbbell_upright(cv, An['hand'], ax)}, {'biceps': 1}
+
+
+@exercise('rosca-scott')
+def ex_preacher(p):
+    hip = v(176, SEAT_HIP_Y)
+    sh = lean(hip, 14, TO)
+    An = limb(sh, 48, lerp(40, -105, p))
+    d = polar(48); post = perp(d)
+    pad_c = add(add(sh, mul(d, 30)), mul(post, 11))
+    def back(cv):
+        stool(cv, 130, 220)
+        cv.rect_along(pad_c, d, 34, 7, PAD, PAD_HI, 2)
+        cv.bar(add(pad_c, mul(post, 6)), v(pad_c[0] + 6, FLOOR_Y), 9)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': seated_legs(hip), 'An': An}
+    return J, merge({'back': back}, barbell_at(An['hand'], 24)), {'biceps': 1}
+
+
+@exercise('rosca-polia', k=0.9)
+def ex_cable_curl(p):
+    ankle, knee, hip, sh = standing_body(214, 4)
+    An = limb(sh, 86, lerp(82, -62, p))
+    pl = v(352, 300)
+    hooks = {'back': lambda cv: (tower(370, 40, p)(cv), pulley(pl)(cv)),
+             'front': lambda cv: (cable(pl, An['hand'])(cv), cv.circle(An['hand'], 5, METAL))}
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An}
+    return J, hooks, {'biceps': 1}
+
+
+@exercise('rosca-concentrada')
+def ex_concentration(p):
+    hip = v(178, SEAT_HIP_Y)
+    sh = lean(hip, 40, TO)
+    An = limb(sh, 92, lerp(92, -78, p))
+    Ln = seated_legs(hip)
+    Af = arm(add(sh, (-6, -5)), add(Ln['knee'], (-4, -12)), 1)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': Ln, 'An': An, 'Af': Af}
+    return J, {'back': lambda cv: stool(cv, 120, 220), 'front': lambda cv: dumbbell_side(cv, An['hand'])}, {'biceps': 1}
+
+
+@exercise('rosca-inclinada')
+def ex_incline_curl(p):
+    hip = v(206, SEAT_HIP_Y)
+    sh = lean(hip, -38, TO)
+    An = limb(sh, 94, lerp(92, -55, p)); Af = far_of(An)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': seated_legs(hip), 'An': An, 'Af': Af, 'head_tilt': 12}
+    return J, merge({'back': lambda cv: (stool(cv, 140, 250), backrest(cv, hip, -38, 110))}, dumbbells(An, Af)), {'biceps': 1}
+
+
+# ---------- tríceps ----------
+def pushdown(p, rope):
+    ankle, knee, hip, sh = standing_body(212, 10, 3, 4)
+    An = limb(sh, 98, lerp(-62, 88 if not rope else 96, p))
+    top = v(338, 40)
+    def front(cv):
+        cable(top, An['hand'])(cv)
+        if rope:
+            for dx in (-5, 5): cv.line(An['hand'], add(An['hand'], (dx, 12)), 3.5, (180, 150, 90))
+        else:
+            cv.circle(An['hand'], 5, METAL)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An}
+    return J, {'back': lambda cv: (tower(358, 30, p)(cv), pulley(top)(cv)), 'front': front}, {'triceps': 1}
+
+
+@exercise('triceps-pulley', k=0.9)
+def ex_pushdown(p): return pushdown(p, False)
+
+
+@exercise('triceps-corda', k=0.9)
+def ex_rope(p): return pushdown(p, True)
+
+
+def supine_bench_body(incline=0):
+    """Deitada no banco, cabeça à esquerda. incline em graus (0 = reto)."""
+    hip = v(250, 229)
+    sh = add(hip, polar(180 + incline, TO))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, v(322, ANK_Y), (1, 0)), 'head_tilt': 8}
+    return J, hip, sh
+
+
+def flat_bench(cv):
+    bench(cv, 112, 270, 243)
+
+
+def incline_bench(cv, hip, sh):
+    bench(cv, 196, 282, 243)
+    d = norm(sub(sh, hip)); n = mul(perp(d), -1)
+    c = add(add(hip, mul(d, 60)), mul(n, 21))
+    cv.rect_along(c, d, 62, 7, PAD, PAD_HI, 2)
+    cv.bar(add(c, mul(d, 40)), v(c[0] - 30, FLOOR_Y), 8)
+
+
+@exercise('triceps-testa', phase=phase_down)
+def ex_skull(p):
+    J, hip, sh = supine_bench_body()
+    J['An'] = limb(sh, -98, lerp(-98, -205, p))
+    return J, merge({'back': flat_bench}, barbell_at(J['An']['hand'], 24)), {'triceps': 1}
+
+
+@exercise('triceps-frances', phase=phase_down, k=0.9)
+def ex_overhead_ext(p):
+    hip = v(196, SEAT_HIP_Y)
+    sh = lean(hip, 2, TO)
+    fa = lerp(-90, -232, p)
+    An = limb(sh, -96, fa)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': seated_legs(hip), 'An': An}
+    return J, {'back': lambda cv: stool(cv, 130, 240), 'front': lambda cv: dumbbell_upright(cv, add(An['hand'], polar(fa, 4)), polar(fa))}, {'triceps': 1}
+
+
+@exercise('triceps-coice')
+def ex_kickback(p):
+    ankle = v(196, ANK_Y)
+    knee, hip, sh = stand_chain(ankle, 10, 22, 68)
+    back_ang = deg(sub(hip, sh)) - 8
+    An = limb(sh, back_ang, lerp(92, back_ang, p))
+    Af = arm(add(sh, (-6, -5)), v(330, 236), 1)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An, 'Af': Af, 'head_tilt': -28}
+    return J, {'back': lambda cv: bench(cv, 300, 400, 243), 'front': lambda cv: dumbbell_side(cv, An['hand'])}, {'triceps': 1}
+
+
+@exercise('mergulho', phase=phase_down)
+def ex_dips(p):
+    hand = v(252, 150)
+    sh = add(hand, (lerp(-4, -20, p), lerp(-90, -50, p)))
+    hip = add(sh, polar(90 + 14, TO))
+    knee = add(hip, polar(66, TH)); ankle = add(knee, polar(192, SH))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, None, knee, foot_rot=40), 'An': arm(sh, hand, 1)}
+    def back(cv):
+        cv.bar(v(hand[0] + 6, hand[1] + 4), v(hand[0] + 6, FLOOR_Y), 10)
+        cv.bar(v(hand[0] - 40, FLOOR_Y - 2), v(hand[0] + 50, FLOOR_Y - 2), 8)
+    def front(cv):
+        cv.circle(add(hand, (0, 4)), 7, FRAME_C, FRAME_D, 2)
+    return J, {'back': back, 'front': front}, {'triceps': 1, 'chest': 0.4}
+
+
+def bench_press(p, incline=0, dumbbell=False, focus=None):
+    J, hip, sh = supine_bench_body(incline)
+    top = add(sh, (6 if incline else 12, -92))
+    low = add(sh, (24 if incline else 20, -22))
+    hand = lerpv(low, top, p)
+    An = arm(sh, hand, 1)
+    J['An'] = An
+    bench_draw = flat_bench if not incline else (lambda cv: incline_bench(cv, hip, sh))
+    if dumbbell:
+        Af = far_of(An); J['Af'] = Af
+        return J, merge({'back': bench_draw}, dumbbells(An, Af)), focus
+    def rack(cv):
+        cv.bar(v(sh[0] - 14, FLOOR_Y), v(sh[0] - 14, 120), 9)
+        cv.bar(v(sh[0] - 14, 132), v(sh[0] + 2, 132), 6, FRAME_D, FRAME_E)
+    return J, merge({'back': lambda cv: (rack(cv), bench_draw(cv))}, barbell_at(hand, 30)), focus
+
+
+@exercise('supino-reto')
+def ex_bench(p): return bench_press(p, focus={'chest': 1, 'triceps': 0.5})
+
+
+@exercise('supino-fechado')
+def ex_close_bench(p): return bench_press(p, focus={'triceps': 1, 'chest': 0.5})
+
+
+@exercise('supino-reto-halteres')
+def ex_db_bench(p): return bench_press(p, dumbbell=True, focus={'chest': 1, 'triceps': 0.5})
+
+
+@exercise('supino-inclinado')
+def ex_incline_bench(p): return bench_press(p, incline=34, focus={'chest': 1, 'delt': 0.6})
+
+
+@exercise('supino-inclinado-halteres')
+def ex_incline_db(p): return bench_press(p, incline=34, dumbbell=True, focus={'chest': 1, 'delt': 0.6})
+
+
+@exercise('supino-maquina')
+def ex_machine_press(p):
+    hip = v(184, SEAT_HIP_Y)
+    sh = lean(hip, -8, TO)
+    hand = lerpv(add(sh, (30, 10)), add(sh, (88, 4)), p)
+    An = arm(sh, hand, 1)
+    pivot = add(sh, (-4, -96))
+    def back(cv):
+        stool(cv, 120, 230); backrest(cv, hip, -8)
+        cv.bar(v(pivot[0] - 8, FLOOR_Y), pivot, 10)
+        cv.bar(pivot, hand, 8, FRAME_D, FRAME_E)
+        cv.circle(pivot, 8, FRAME_C, FRAME_D, 2)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': seated_legs(hip), 'An': An}
+    return J, {'back': back, 'front': lambda cv: cv.circle(hand, 5, METAL)}, {'chest': 1, 'triceps': 0.5}
+
+
+@exercise('flexao', phase=phase_down)
+def ex_pushup(p):
+    ankle = v(108, 300)
+    def body(th):
+        d = (math.cos(math.radians(th)), -math.sin(math.radians(th)))
+        return add(ankle, mul(d, SH)), add(ankle, mul(d, SH + TH)), add(ankle, mul(d, SH + TH + TO))
+    _, _, sh_top = body(19)
+    hand = v(sh_top[0] + 4, 312)
+    th = solve(lambda a: body(a)[2][1], 3, 19, lerp(sh_top[1], 284, p))
+    knee, hip, sh = body(th)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (0.15, 1), knee), 'An': arm(sh, hand, 1), 'head_tilt': -6}
+    return J, {'back': lambda cv: cv.box(70, FLOOR_Y - 4, 400, FLOOR_Y, MAT)}, {'chest': 1, 'triceps': 0.6}
+
+
+# ---------- costas ----------
+def pulldown_machine(p, top_hand, bottom_hand, lean_from, lean_to, focus, vgrip=False):
+    hip = v(196, SEAT_HIP_Y)
+    sh = lean(hip, lerp(lean_from, lean_to, p), TO)
+    hand = lerpv(add(sh, top_hand), add(sh, bottom_hand), p)
+    An = arm(sh, hand, -1)
+    Ln = seated_legs(hip)
+    pl = v(hand[0], 16)
+    def back(cv):
+        stool(cv, 130, 240)
+        cv.bar(v(120, FLOOR_Y), v(120, 16), 11)
+        cv.bar(v(120, 16), v(hand[0] + 16, 16), 9)
+        y = stack(cv, 98, 300, 9, -40 * p if False else 40 * p, 3, 24)
+        cv.bar(v(Ln['knee'][0] - 4, Ln['knee'][1] - 20), v(140, 252), 7)
+    def front(cv):
+        cable(pl, hand)(cv)
+        cv.rect_along(add(Ln['knee'], (-6, -19)), (1, 0), 14, 6, PAD, PAD_HI, 2)
+        if vgrip: cv.line(hand, add(hand, (6, 10)), 4, METAL)
+        else: cv.circle(hand, 5, METAL)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': Ln, 'An': An}
+    return J, {'back': back, 'front': front}, focus
+
+
+@exercise('puxada-frontal', k=0.9)
+def ex_lat_pulldown(p): return pulldown_machine(p, (14, -92), (24, -4), 8, 18, {'back': 1, 'biceps': 0.5})
+
+
+@exercise('puxada-triangulo', k=0.9)
+def ex_vbar_pulldown(p): return pulldown_machine(p, (16, -92), (26, 10), 10, 26, {'back': 1, 'biceps': 0.5}, vgrip=True)
+
+
+@exercise('barra-fixa')
+def ex_pullup(p):
+    hand = v(250, 34)
+    sh = add(hand, (lerp(-8, -14, p), lerp(84, 38, p)))
+    hip = lean(sh, 172, TO)
+    knee = add(hip, polar(62, TH)); ankle = add(knee, polar(196, SH))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, None, knee, foot_rot=50), 'An': arm(sh, hand, 1)}
+    def back(cv):
+        cv.bar(v(150, 30), v(340, 30), 8)
+        cv.bar(v(330, 30), v(330, FLOOR_Y), 10)
+    return J, {'back': back, 'front': lambda cv: cv.circle(add(hand, (0, -4)), 6, METAL)}, {'back': 1, 'biceps': 0.6}
+
+
+def bent_row(p, a_b, hand_to, plate=True, landmine=False):
+    ankle = v(204, ANK_Y)
+    knee, hip, sh = stand_chain(ankle, 12, 30, a_b)
+    hand = lerpv(add(sh, (4, 90)), add(hip, hand_to), p)
+    An = arm(sh, hand, -1)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An, 'head_tilt': -24}
+    if landmine:
+        base = v(70, FLOOR_Y - 6)
+        end = add(hand, mul(norm(sub(hand, base)), 34))
+        return J, {'back': lambda cv: (cv.bar(base, end, 7, METAL, FRAME_E), plate_disc(cv, add(hand, mul(norm(sub(hand, base)), 22)), 24)),
+                   'front': lambda cv: cv.circle(hand, 5, METAL)}, {'back': 1, 'biceps': 0.5}
+    return J, barbell_at(hand, 30), {'back': 1, 'biceps': 0.5}
+
+
+@exercise('remada-curvada')
+def ex_bent_row(p): return bent_row(p, 58, (34, 2))
+
+
+@exercise('remada-cavalinho')
+def ex_tbar(p): return bent_row(p, 50, (40, -14), landmine=True)
+
+
+@exercise('remada-unilateral')
+def ex_one_arm_row(p):
+    hip, sh = v(232, 156), v(326, 166)
+    kf = v(244, 232); af = v(170, 236)
+    hand_low = add(sh, (2, 92))
+    hand = lerpv(hand_low, add(hip, (34, 14)), p)
+    An = arm(sh, hand, -1)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, v(214, ANK_Y), (1, 0)),
+         'Lf': leg(add(hip, (-6, -4)), af, None, kf, foot_rot=60),
+         'An': An, 'Af': arm(add(sh, (-6, -5)), v(338, 236), 1), 'head_tilt': -16}
+    return J, {'back': lambda cv: bench(cv, 160, 360, 243), 'front': lambda cv: dumbbell_side(cv, An['hand'])}, {'back': 1, 'biceps': 0.5}
+
+
+@exercise('remada-baixa')
+def ex_seated_row(p):
+    hip = v(150, 252)
+    sh = lean(hip, lerp(18, -6, p), TO)
+    ankle = v(300, 260)
+    hand = lerpv(add(sh, polar(14, 90)), add(hip, (34, -40)), p)
+    An = arm(sh, hand, -1)
+    pl = v(388, 262)
+    def back(cv):
+        cv.bar(v(60, FLOOR_Y - 2), v(420, FLOOR_Y - 2), 8)
+        cv.box(90, 266, 250, 280, PAD, PAD_HI, 2)
+        cv.bar(v(120, 280), v(120, FLOOR_Y), 9); cv.bar(v(230, 280), v(230, FLOOR_Y), 9)
+        cv.poly([(306, 230), (318, 230), (318, 300), (306, 300)], FRAME_D, FRAME_E, 2)
+        tower(404, 60, p, 30)(cv)
+        pulley(pl)(cv)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (0, -1)), 'An': An}
+    return J, {'back': back, 'front': lambda cv: (cable(pl, hand)(cv), cv.line(hand, add(hand, (6, 10)), 4, METAL))}, {'back': 1, 'biceps': 0.5}
+
+
+@exercise('remada-maquina')
+def ex_machine_row(p):
+    hip = v(176, SEAT_HIP_Y)
+    sh = lean(hip, 12, TO)
+    hand = lerpv(add(sh, (86, 18)), add(sh, (22, 24)), p)
+    An = arm(sh, hand, -1)
+    pivot = v(sh[0] + 120, 262)
+    def back(cv):
+        stool(cv, 120, 220)
+        cv.bar(v(pivot[0], FLOOR_Y), pivot, 10)
+        cv.bar(pivot, hand, 8, FRAME_D, FRAME_E)
+        cv.circle(pivot, 8, FRAME_C, FRAME_D, 2)
+    def pad(cv):
+        c = add(sh, (30, 24))
+        cv.rect_along(c, (0, 1), 36, 7, PAD, PAD_HI, 2)
+        cv.bar(add(c, (8, 30)), v(c[0] + 8, FLOOR_Y), 8)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': seated_legs(hip), 'An': An}
+    return J, {'back': back, 'front_leg': pad, 'front': lambda cv: cv.circle(hand, 5, METAL)}, {'back': 1, 'biceps': 0.5}
+
+
+@exercise('pulldown-corda', k=0.84)
+def ex_straight_pulldown(p):
+    ankle = v(214, ANK_Y)
+    knee, hip, sh = stand_chain(ankle, 8, 16, 26)
+    ang = lerp(-36, 74, p)
+    An = limb(sh, ang, ang)
+    top = v(372, 40)
+    def front(cv):
+        cable(top, An['hand'])(cv)
+        for dx in (-5, 5): cv.line(An['hand'], add(An['hand'], (dx, 12)), 3.5, (180, 150, 90))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An, 'Af': far_of(An)}
+    return J, {'back': lambda cv: (tower(392, 30, p)(cv), pulley(top)(cv)), 'front': front}, {'back': 1}
+
+
+@exercise('encolhimento', k=0.9)
+def ex_shrug(p):
+    ankle, knee, hip, _ = standing_body()
+    sh = add(lean(hip, 2, TO), (0, -10 * p))
+    An, Af, _ = dumbbells_hanging(sh)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An, 'Af': Af}
+    return J, dumbbells(An, Af), {'traps': 1}
+
+
+# ---------- ombros ----------
+def seated_press(p, mode):
+    hip = v(196, SEAT_HIP_Y)
+    sh = lean(hip, -4, TO)
+    hand = lerpv(add(sh, (14, -18)), add(sh, (4, -92)), p)
+    An = arm(sh, hand, 1)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': seated_legs(hip), 'An': An}
+    base = {'back': lambda cv: (stool(cv, 140, 250), backrest(cv, hip, -4, 110))}
+    if mode == 'db':
+        Af = far_of(An); J['Af'] = Af
+        return J, merge(base, dumbbells(An, Af)), {'delt': 1, 'triceps': 0.5}
+    pivot = add(sh, (-70, -40))
+    def lever(cv):
+        cv.bar(pivot, hand, 8, FRAME_D, FRAME_E); cv.circle(pivot, 8, FRAME_C, FRAME_D, 2)
+    return J, merge(base, {'back': lever, 'front': lambda cv: cv.circle(hand, 5, METAL)}), {'delt': 1, 'triceps': 0.5}
+
+
+@exercise('desenvolvimento-halteres', k=0.86)
+def ex_db_press(p): return seated_press(p, 'db')
+
+
+@exercise('desenvolvimento-maquina', k=0.86)
+def ex_machine_shoulder(p): return seated_press(p, 'machine')
+
+
+@exercise('desenvolvimento-barra', k=0.76)
+def ex_ohp(p):
+    ankle, knee, hip, sh = standing_body(226, 1)
+    hand = lerpv(add(sh, (22, -6)), add(sh, (2, -92)), p)
+    An = arm(sh, hand, 1)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An, 'head_tilt': lerp(-10, 0, p)}
+    return J, barbell_at(hand, 28), {'delt': 1, 'triceps': 0.5}
+
+
+@exercise('elevacao-frontal', k=0.9)
+def ex_front_raise(p):
+    ankle, knee, hip, sh = standing_body()
+    ang = lerp(84, -4, p)
+    An = limb(sh, ang, ang - 4)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An}
+    return J, {'front': lambda cv: dumbbell_side(cv, An['hand'])}, {'delt': 1}
+
+
+@exercise('face-pull', k=0.9)
+def ex_face_pull(p):
+    ankle, knee, hip, sh = standing_body(200, -4)
+    hand = lerpv(add(sh, (88, -16)), add(sh, (20, -40)), p)
+    An = arm(sh, hand, -1)
+    top = v(372, sh[1] - 34)
+    def front(cv):
+        cable(top, hand)(cv)
+        for dy in (-5, 5): cv.line(hand, add(hand, (-6, dy)), 3.5, (180, 150, 90))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An}
+    return J, {'back': lambda cv: (tower(392, 30, p)(cv), pulley(top)(cv)), 'front': front}, {'delt': 1, 'traps': 0.6}
+
+
+@exercise('remada-alta', k=0.9)
+def ex_upright_row(p):
+    ankle, knee, hip, sh = standing_body()
+    hand = lerpv(add(sh, (8, 90)), add(sh, (16, 14)), p)
+    elbow = add(sh, polar(lerp(88, 196, p), UA * lerp(1, 0.6, p)))
+    An = {'sh': sh, 'elbow': elbow, 'hand': hand}
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An}
+    return J, barbell_at(hand, 24), {'delt': 1, 'traps': 0.7}
+
+
+# ---------- abdômen e lombar ----------
+def mat(cv): cv.box(60, FLOOR_Y - 4, 400, FLOOR_Y, MAT)
+
+
+@exercise('abdominal-crunch')
+def ex_crunch(p):
+    hip = v(244, 300)
+    a = lerp(0, 34, p)
+    sh = add(hip, (-math.cos(math.radians(a)) * TO, -math.sin(math.radians(a)) * TO))
+    nd = norm(sub(sh, hip)); ant = perp(nd)
+    headc = add(sh, mul(nd, NK))
+    hand = add(add(headc, mul(ant, -12)), mul(nd, 4))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, v(326, ANK_Y), (1, 0)), 'An': arm(sh, hand, -1), 'head_tilt': lerp(0, 16, p)}
+    return J, {'back': mat}, {'abs': 1}
+
+
+@exercise('abdominal-polia')
+def ex_cable_crunch(p):
+    knee = v(232, 302)
+    hip = add(knee, (-4, -TH))
+    sh = lean(hip, lerp(10, 78, p), TO)
+    nd = norm(sub(sh, hip)); ant = perp(nd)
+    hand = add(add(sh, mul(nd, 18)), mul(ant, 12))
+    top = v(140, 30)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, v(156, 306), None, knee, foot_rot=60), 'An': arm(sh, hand, -1), 'head_tilt': lerp(0, 18, p)}
+    return J, {'back': lambda cv: (tower(120, 24, p)(cv), pulley(top)(cv), mat(cv)), 'front': cable(top, hand)}, {'abs': 1}
+
+
+@exercise('prancha')
+def ex_plank(p):
+    ankle = v(110, 300)
+    th = 9 + 1.2 * p
+    d = (math.cos(math.radians(th)), -math.sin(math.radians(th)))
+    knee = add(ankle, mul(d, SH)); hip = add(knee, mul(d, TH)); sh = add(hip, mul(d, TO))
+    elbow = v(sh[0] + 2, 304)
+    An = {'sh': sh, 'elbow': elbow, 'hand': add(elbow, (FA, 2))}
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (0.15, 1), knee), 'An': An, 'head_tilt': -8}
+    return J, {'back': mat}, {'abs': 0.55 + 0.45 * p, 'lower': 0.3}
+
+
+@exercise('elevacao-pernas')
+def ex_leg_raise(p):
+    sh, hip = v(148, 300), v(244, 300)
+    a = lerp(0, 84, p)
+    d = (math.cos(math.radians(a)), -math.sin(math.radians(a)))
+    knee = add(hip, mul(d, TH)); ankle = add(knee, mul(d, SH))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, None, knee, foot_rot=-60),
+         'An': {'sh': sh, 'elbow': add(sh, (UA, 6)), 'hand': add(sh, (UA + FA, 8))}}
+    return J, {'back': mat}, {'abs': 1}
+
+
+@exercise('roda-abdominal', phase=phase_down)
+def ex_ab_wheel(p):
+    knee = v(196, 302)
+    a = lerp(8, 58, p)
+    hip = add(knee, polar(-90 + a, TH))
+    sh = add(hip, polar(-90 + a + lerp(46, 30, p), TO))
+    dy = 298 - sh[1]
+    hand = v(sh[0] + math.sqrt(max(0, 92 ** 2 - dy * dy)), 298)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, v(122, 306), None, knee, foot_rot=60), 'An': arm(sh, hand, -1), 'head_tilt': -20}
+    def wheel(cv):
+        cv.circle(add(hand, (0, 6)), 14, (20, 20, 22)); cv.circle(add(hand, (0, 6)), 12, PLATE); cv.circle(add(hand, (0, 6)), 4, METAL)
+    return J, {'back': mat, 'front': wheel}, {'abs': 1, 'lower': 0.3}
+
+
+def roman_chair(p, focus):
+    ankle = v(140, 276)
+    knee = add(ankle, polar(-40, SH)); hip = add(knee, polar(-40, TH))
+    sh = add(hip, polar(lerp(70, -36, p), TO))
+    nd = norm(sub(sh, hip)); ant = perp(nd)
+    hand = add(add(sh, mul(ant, 14)), mul(nd, -26))
+    def back(cv):
+        cv.bar(v(110, FLOOR_Y - 2), v(320, FLOOR_Y - 2), 8)
+        cv.bar(v(130, FLOOR_Y), v(130, 290), 10)
+        cv.bar(v(130, 290), add(hip, (12, 18)), 10)
+        cv.rect_along(add(add(hip, mul(polar(-40), 4)), mul(perp(polar(-40)), 18)), polar(-40), 18, 7, PAD, PAD_HI, 2)
+        cv.box(118, 284, 162, 290, FRAME_D, FRAME_E, 2)
+        cv.circle(add(ankle, (-12, -2)), 7, PAD, PAD_HI, 2)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, None, knee, foot_rot=40), 'An': arm(sh, hand, 1)}
+    return J, {'back': back}, focus
+
+
+@exercise('hiperextensao-lombar')
+def ex_back_ext(p): return roman_chair(p, {'lower': 1, 'glute': 0.5})
+
+
+@exercise('hiperextensao-gluteo')
+def ex_back_ext_glute(p): return roman_chair(p, {'glute': 1, 'ham': 0.5})
+
+
+@exercise('superman')
+def ex_superman(p):
+    hip = v(200, 298)
+    sh = add(hip, polar(-lerp(0, 12, p), TO))
+    d = polar(180 + lerp(0, 10, p))
+    knee = add(hip, mul(d, TH)); ankle = add(knee, mul(d, SH))
+    An = limb(sh, -lerp(2, 16, p), -lerp(2, 16, p))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, None, knee, foot_rot=-80), 'An': An, 'Af': far_of(An), 'head_tilt': -10}
+    return J, {'back': mat}, {'lower': 1, 'glute': 0.5}
+
+
+@exercise('bird-dog')
+def ex_bird_dog(p):
+    hip, sh = v(196, 220), v(292, 222)
+    kn = v(198, 300)
+    An = limb(sh, lerp(90, -4, p), lerp(90, -4, p))
+    Af = arm(add(sh, (-6, -4)), v(286, 312), 1)
+    fk = add(hip, polar(lerp(92, 180, p), TH)); fa = add(fk, polar(lerp(180, 180, p), SH))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, v(122, 306), None, kn, foot_rot=60),
+         'Lf': leg(add(hip, (-6, -4)), add(fa, (-6, -4)), None, add(fk, (-6, -4)), foot_rot=lerp(60, -70, p)),
+         'An': An, 'Af': Af, 'head_tilt': -10}
+    return J, {'back': mat}, {'lower': 1, 'glute': 0.6}
+
+
+# ---------- pernas (sobras da etapa 1) ----------
+@exercise('agachamento-sumo', phase=phase_down, k=0.92)
+def ex_sumo(p):
+    ankle = v(232, ANK_Y)
+    knee, hip, sh = stand_chain(ankle, lerp(3, 26, p), lerp(4, 88, p), lerp(3, 22, p))
+    hand = add(sh, (6, UA + FA - 4))
+    An = arm(sh, hand, 1)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An, 'Af': far_of(An)}
+    return J, {'front': lambda cv: dumbbell_upright(cv, add(hand, (0, 16)), (0, 1))}, {'glute': 1, 'quad': 0.6}
+
+
+@exercise('sissy-squat', phase=phase_down, k=0.9)
+def ex_sissy(p):
+    ball = v(250, 312)
+    ankle = add(ball, (-16, -12))
+    knee = add(ankle, polar(-90 + lerp(6, 64, p), SH))
+    hip = add(knee, polar(-90 - lerp(4, 30, p), TH))
+    sh = add(hip, polar(-90 - lerp(4, 30, p), TO))
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, norm(sub(ball, ankle)), knee),
+         'An': arm(sh, v(334, 150), 1)}
+    return J, {'back': lambda cv: cv.bar(v(344, FLOOR_Y), v(344, 40), 10)}, {'quad': 1}
+
+
+@exercise('nordic', phase=phase_down)
+def ex_nordic(p):
+    knee = v(214, 300)
+    a = lerp(0, 64, p)
+    hip = add(knee, polar(-90 + a, TH))
+    sh = add(hip, polar(-90 + a, TO))
+    nd = norm(sub(sh, hip)); ant = perp(nd)
+    hand = add(add(sh, mul(ant, 30)), mul(nd, -30))
+    def back(cv):
+        mat(cv)
+        cv.circle(v(140, 290), 9, PAD, PAD_HI, 2)
+        cv.bar(v(140, 290), v(140, FLOOR_Y), 7)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, v(138, 306), None, knee, foot_rot=60), 'An': arm(sh, hand, 1)}
+    return J, {'back': back}, {'ham': 1}
+
+
+@exercise('flexora-em-pe', k=0.92)
+def ex_standing_curl(p):
+    ankle_f = v(214, ANK_Y)
+    _, hip, _ = stand_chain(ankle_f, 3, 3, 0)
+    sh = lean(hip, 16, TO)
+    knee = hang(hip, -4, TH)
+    ang = lerp(92, 205, p)
+    ankle = add(knee, polar(ang, SH))
+    d = polar(ang)
+    roll = add(add(knee, mul(d, SH - 8)), mul(perp(d), 14))
+    def back(cv):
+        cv.bar(v(300, FLOOR_Y), v(300, 120), 11)
+        cv.bar(v(170, FLOOR_Y - 2), v(330, FLOOR_Y - 2), 8)
+        cv.rect_along(add(hip, (34, -40)), polar(-74), 34, 7, PAD, PAD_HI, 2)
+        cv.bar(add(knee, (24, 0)), v(300, knee[1]), 8)
+        cv.bar(add(knee, (12, 0)), add(knee, (12, 0)), 8)
+    def front(cv):
+        cv.bar(add(knee, (12, 0)), add(add(knee, (12, 0)), mul(d, SH - 8)), 7, FRAME_D, FRAME_E)
+        cv.circle(roll, 11.5, (20, 20, 22)); cv.circle(roll, 10, PAD); cv.circle(roll, 4, PAD_HI)
+    J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, None, knee),
+         'Lf': leg(add(hip, (-5, -4)), ankle_f, (1, 0)), 'An': arm(sh, v(300, 160), 1)}
+    return J, {'back': back, 'front_leg': front}, {'ham': 1}
 
 
 # ---------- saída ----------
