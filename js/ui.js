@@ -49,12 +49,31 @@ function toast(msg) {
 function openSheet(html, opts = {}) {
   const wrap = document.createElement('div');
   wrap.className = 'sheet-wrap';
-  wrap.innerHTML = `<div class="sheet-bg" data-close></div><div class="sheet ${opts.cls || ''}" role="dialog" aria-modal="true"><div class="sheet-grip" data-close></div><div class="sheet-body">${html}</div></div>`;
+  wrap.innerHTML = `<div class="sheet-bg" data-close></div><div class="sheet ${opts.cls || ''}" role="dialog" aria-modal="true">
+    <div class="sheet-top"><div class="sheet-grip"></div><button class="sheet-x" data-close aria-label="Fechar">${ic('x')}</button></div>
+    <div class="sheet-body">${html}</div></div>`;
   $('#sheets').appendChild(wrap);
   requestAnimationFrame(() => wrap.classList.add('open'));
   wrap.addEventListener('click', e => { if (e.target.closest('[data-close]')) closeSheet(wrap); });
+  sheetSwipe(wrap);
   wrap._onClose = opts.onClose;
   return wrap;
+}
+// Arrastar a barra do topo para baixo fecha a folha.
+function sheetSwipe(wrap) {
+  const sheet = $('.sheet', wrap), top = $('.sheet-top', wrap);
+  let y0 = null, dy = 0;
+  top.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; dy = 0; sheet.style.transition = 'none'; }, { passive: true });
+  top.addEventListener('touchmove', e => {
+    if (y0 == null) return;
+    dy = Math.max(0, e.touches[0].clientY - y0);
+    sheet.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+  top.addEventListener('touchend', () => {
+    if (y0 == null) return;
+    y0 = null; sheet.style.transition = ''; sheet.style.transform = '';
+    if (dy > 70) closeSheet(wrap);
+  });
 }
 function setSheet(wrap, html) { $('.sheet-body', wrap).innerHTML = html; }
 function closeSheet(wrap) {
