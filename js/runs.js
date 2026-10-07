@@ -151,9 +151,9 @@ function renderRuns() {
 
   html += conn
     ? `<button class="strava-bar" data-act="stravaSetup"><span class="strava-dot"></span><span><b>Strava</b>${c.athlete ? ' · ' + esc(c.athlete) : ''}<small>${RUNSYNC.busy ? 'Sincronizando…' : c.lastSync ? 'Sincronizado ' + relDay(c.lastSync) + ' às ' + fmtTime(c.lastSync) : 'Ainda não sincronizado'}</small></span>${ic('right', 'chev')}</button>`
-    : `<section class="card strava-cta"><div><b>Importe suas corridas do Strava</b><p class="muted small">Conecte uma vez e sincronize com um toque. Também dá para registrar manualmente.</p></div><button class="btn btn-strava" data-act="stravaSetup">Conectar Strava</button></section>`;
+    : `<section class="card strava-cta"><div><b>Importe suas corridas do Strava</b><p class="muted small">Pelo arquivo de dados do Strava (grátis) ou pela conexão direta (exige assinatura do Strava). Também dá para registrar manualmente.</p></div><div class="btn-col"><button class="btn btn-strava" data-act="stravaFileHelp">${ic('upload')}Importar arquivo do Strava</button><button class="btn btn-ghost" data-act="stravaSetup">Conectar Strava (assinantes)</button></div></section>`;
 
-  if (!runs.length) return html + emptyState('run', 'Nenhuma corrida ainda', conn ? 'Toque em sincronizar para importar do Strava.' : 'Conecte o Strava ou registre uma corrida.');
+  if (!runs.length) return html + emptyState('run', 'Nenhuma corrida ainda', conn ? 'Toque em sincronizar para importar do Strava.' : 'Importe o arquivo do Strava ou registre uma corrida.');
 
   const ws = startOfWeek(now), ms = new Date(now.getFullYear(), now.getMonth(), 1);
   const wk = runsBetween(ws, now), mo = runsBetween(ms, now);
@@ -276,10 +276,11 @@ ACT.stravaSetup = () => {
       <div class="btn-col">
         <button class="btn btn-primary" data-act="stravaSyncBtn">${ic('refresh')}Sincronizar agora</button>
         <button class="btn btn-ghost" data-act="stravaFull">Reimportar todo o histórico</button>
+        <button class="btn btn-ghost" data-act="stravaFileHelp">${ic('upload')}Importar arquivo do Strava</button>
         <button class="btn btn-text danger" data-act="stravaOff">Desconectar</button>
       </div>`
     : `<h3 class="sheet-title">Conectar ao Strava</h3>
-      <p class="muted small">O Strava exige que você crie um “app de API” na sua conta. É grátis e só precisa ser feito uma vez.</p>
+      <p class="muted small">O Strava exige que você crie um “app de API” na sua conta, e isso só é liberado para <b>assinantes do Strava</b>. Sem assinatura, use <a class="link" href="#" data-act="stravaFileHelp">Importar arquivo do Strava</a>.</p>
       <ol class="steps">
         <li>Abra <a class="link" href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a> (faça login no Strava).</li>
         <li>Crie o app com: <b>Nome</b> Evolua · <b>Categoria</b> Training · <b>Site</b> <code>${esc(redirectUri())}</code> · <b>Domínio de retorno de autorização</b> <code>${esc(location.hostname)}</code></li>
