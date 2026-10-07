@@ -553,10 +553,12 @@ def ex_goblet(p):
     ankle = v(232, ANK_Y)
     knee, hip, sh = stand_chain(ankle, lerp(3, 32, p), lerp(4, 102, p), lerp(3, 26, p))
     nd = norm(sub(sh, hip)); ant = perp(nd)
-    db = add(add(sh, mul(ant, 24)), mul(nd, -26))
-    hand = add(add(db, mul(nd, -12)), mul(ant, -2))
+    # halter na vertical junto ao peito; mãos sob a cabeça de cima e cotovelos apontando para baixo
+    hand = add(add(sh, mul(ant, 19)), mul(nd, -20))
+    db = add(add(hand, mul(nd, -4)), mul(ant, 8))
+    elbow = add(add(sh, mul(nd, -46)), mul(ant, 10))
     J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee),
-         'An': arm(sh, hand, -1), 'Af': arm(add(sh, (-6, -5)), add(hand, (-4, -3)), -1)}
+         'An': arm(sh, hand, elbow=elbow), 'Af': arm(add(sh, (-6, -5)), add(hand, (-4, -3)), elbow=add(elbow, (-5, -4)))}
     return J, {'front_leg': lambda cv: dumbbell_upright(cv, db, nd)}, {'quad': 1, 'glute': 0.5}
 
 
