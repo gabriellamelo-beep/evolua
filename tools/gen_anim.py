@@ -1425,9 +1425,11 @@ def ex_front_raise(p):
 @exercise('face-pull', k=0.9)
 def ex_face_pull(p):
     ankle, knee, hip, sh = standing_body(200, -4)
-    hand = lerpv(add(sh, (88, -16)), add(sh, (20, -40)), p)
-    An = arm(sh, hand, -1)
-    top = v(372, sh[1] - 34)
+    # cotovelos na altura dos ombros: da frente (braços estendidos) até ao lado do corpo; mãos chegam ao rosto
+    elbow = lerpv(add(sh, polar(-6, UA)), add(sh, (-12, -2)), ease(p))
+    hand = lerpv(add(sh, polar(-10, UA + FA - 2)), add(sh, (16, -32)), p)
+    An = {'sh': sh, 'elbow': elbow, 'hand': hand}
+    top = v(372, sh[1] - 30)
     def front(cv):
         cable(top, hand)(cv)
         for dy in (-5, 5): cv.line(hand, add(hand, (-6, dy)), 3.5, (180, 150, 90))
