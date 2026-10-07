@@ -1282,11 +1282,19 @@ def ex_pullup(p):
     return J, {'back': back, 'front': lambda cv: cv.circle(add(hand, (0, -4)), 6, METAL)}, {'back': 1, 'biceps': 0.6}
 
 
+def row_arm(sh, hand, pref):
+    """Braço de remada: entre as duas soluções, o cotovelo vai para o lado de pref (para trás do tronco)."""
+    hand = reach(sh, hand, UA + FA - 0.5)
+    a, b = ik(sh, hand, UA, FA, 1), ik(sh, hand, UA, FA, -1)
+    el = a if dot(sub(a, sh), pref) >= dot(sub(b, sh), pref) else b
+    return {'sh': sh, 'hand': hand, 'elbow': el}
+
+
 def bent_row(p, a_b, hand_to, plate=True, landmine=False):
     ankle = v(204, ANK_Y)
     knee, hip, sh = stand_chain(ankle, 12, 30, a_b)
     hand = lerpv(add(sh, (4, 90)), add(hip, hand_to), p)
-    An = arm(sh, hand, -1)
+    An = row_arm(sh, hand, add(norm(sub(hip, sh)), (0, -0.6)))
     J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, ankle, (1, 0), knee), 'An': An, 'head_tilt': -24}
     if landmine:
         base = v(70, FLOOR_Y - 6)
@@ -1310,7 +1318,7 @@ def ex_one_arm_row(p):
     kf = v(244, 232); af = v(170, 236)
     hand_low = add(sh, (2, 92))
     hand = lerpv(hand_low, add(hip, (34, 14)), p)
-    An = arm(sh, hand, -1)
+    An = row_arm(sh, hand, add(norm(sub(hip, sh)), (0, -0.6)))
     J = {'hip': hip, 'shoulder': sh, 'Ln': leg(hip, v(214, ANK_Y), (1, 0)),
          'Lf': leg(add(hip, (-6, -4)), af, None, kf, foot_rot=60),
          'An': An, 'Af': arm(add(sh, (-6, -5)), v(338, 236), 1), 'head_tilt': -16}
@@ -1323,7 +1331,7 @@ def ex_seated_row(p):
     sh = lean(hip, lerp(18, -6, p), TO)
     ankle = v(300, 260)
     hand = lerpv(add(sh, polar(14, 90)), add(hip, (34, -40)), p)
-    An = arm(sh, hand, -1)
+    An = row_arm(sh, hand, (-1, 0.4))
     pl = v(388, 262)
     def back(cv):
         cv.bar(v(60, FLOOR_Y - 2), v(420, FLOOR_Y - 2), 8)
@@ -1341,7 +1349,7 @@ def ex_machine_row(p):
     hip = v(176, SEAT_HIP_Y)
     sh = lean(hip, 12, TO)
     hand = lerpv(add(sh, (86, 18)), add(sh, (22, 24)), p)
-    An = arm(sh, hand, -1)
+    An = row_arm(sh, hand, (-1, 0.4))
     pivot = v(sh[0] + 120, 262)
     def back(cv):
         stool(cv, 120, 220)
