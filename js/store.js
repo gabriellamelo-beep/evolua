@@ -9,6 +9,10 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function defaultProfile() {
   return {
     name: '',
+    sex: '',
+    birthDate: '',
+    height: '',
+    activityFactor: 1.3,
     goals: ['hipertrofia', 'fortalecimento', 'definicao'],
     weeklyTarget: 4,
     plannedDays: [1, 2, 4, 5], // 0 = domingo
@@ -37,6 +41,7 @@ function defaultDB() {
     sessions: [],
     runs: [],
     runsDeleted: [],
+    body: [],
     active: null,
     removedBuiltins: [],
     ui: {},
@@ -56,6 +61,7 @@ function migrate(db) {
   db.sessions = db.sessions || [];
   db.runs = db.runs || [];
   db.runsDeleted = db.runsDeleted || [];
+  db.body = db.body || [];
   db.active = db.active || null;
   db.ui = db.ui || {};
   return db;
@@ -323,7 +329,7 @@ function loadGains(sinceDays) {
 /* ---------- Insights descritivos (somente a partir dos dados registrados) ---------- */
 function computeInsights() {
   const out = [];
-  if (!DB.sessions.length && !(DB.runs || []).length) return out;
+  if (!DB.sessions.length && !(DB.runs || []).length && !(DB.body || []).length) return out;
   const now = new Date(), today = startOfDay(now);
   const a = muscleStats(sessionsBetween(addDays(today, -27), now));
   const b = muscleStats(sessionsBetween(addDays(today, -55), endOfDay(addDays(today, -28))));
@@ -360,6 +366,12 @@ function computeInsights() {
   const runsIn = (a, b) => (DB.runs || []).filter(r => { const t = new Date(r.start); return t >= a && t <= b; }).reduce((s, r) => s + r.distance, 0) / 1000;
   const r4 = runsIn(addDays(today, -27), now), r8 = runsIn(addDays(today, -55), endOfDay(addDays(today, -28)));
   if (r4 > 0) out.push({ icon: 'run', text: `Você correu ${fmtN(r4, 1)} km nas últimas 4 semanas${r8 > 0 ? ` (${fmtN(r8, 1)} km nas 4 anteriores)` : ''}.` });
+
+  const ws = (DB.body || []).filter(m => m.weight !== '' && m.weight != null).sort((x, y) => x.date < y.date ? -1 : 1);
+  if (ws.length >= 2) {
+    const last = ws.at(-1), base = ws.filter(m => m.date <= dayKey(addDays(today, -28))).at(-1);
+    if (base) out.push({ icon: 'body', text: `Seu peso variou ${+last.weight - +base.weight > 0 ? '+' : ''}${fmtN(+last.weight - +base.weight, 1)} ${unit()} em relação a ${fmtShort(parseDayKey(base.date))} (${fmtN(base.weight, 1)} → ${fmtN(last.weight, 1)} ${unit()}).` });
+  }
 
   const wc = sessionsBetween(startOfWeek(now), now).length;
   out.push({ icon: 'calendar', text: `Nesta semana: ${wc} de ${DB.profile.weeklyTarget} treinos planejados.` });

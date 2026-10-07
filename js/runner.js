@@ -425,6 +425,7 @@ function renderSummary() {
   return `<div class="summary">
     <div class="sum-hero"><div class="sum-check">${ic('check')}</div><h2>Treino concluído</h2><p class="muted">${esc(s.workoutName)} · ${fmtDate(s.start)}</p></div>
     <div class="mini-stats four"><div><small>Duração</small><b>${fmtDur(s.duration)}</b></div><div><small>Exercícios</small><b>${st.exs}</b></div><div><small>Séries</small><b>${st.sets}</b></div><div><small>Volume</small><b>${fmtVol(st.vol)}</b></div></div>
+    ${sessionKcal(s) ? `<p class="muted small center">Gasto estimado: ~${fmtN(sessionKcal(s))} kcal além do metabolismo basal</p>` : ''}
     ${ups.length ? `<section class="card"><div class="card-head"><h3>Progressões</h3>${prs.length ? `<span class="pill pos">${ic('trophy')}${prs.length} ${prs.length === 1 ? 'melhor marca' : 'melhores marcas'}</span>` : ''}</div>
       <div class="list">${ups.map(c => `<div class="row"><div class="row-main"><b>${esc(c.name)}</b><span class="muted">${esc(c.text)}</span></div>${c.pr ? ic('trophy', 'gold') : ic('up', 'pos')}</div>`).join('')}</div></section>` : ''}
     <section class="card"><div class="card-head"><h3>Músculos trabalhados</h3></div>

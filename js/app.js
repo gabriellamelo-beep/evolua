@@ -12,7 +12,7 @@ const TABS = [
 ];
 const ROUTES = {
   '': renderHome, treinos: renderWorkouts, exercicios: renderLibrary, editar: renderEditor,
-  mapa: renderMap, corridas: a => renderRuns(a), evolucao: renderEvolution, historico: renderHistory, preferencias: renderPrefs,
+  mapa: renderMap, corridas: a => renderRuns(a), corpo: a => renderCorpo(a), evolucao: renderEvolution, historico: renderHistory, preferencias: renderPrefs,
 };
 let _lastRoute = null;
 
@@ -28,7 +28,7 @@ function route() {
   if (name !== 'editar') EDIT = null;
   view.innerHTML = ROUTES[name](arg) || '';
   view.dataset.route = name;
-  const tabKey = name === 'exercicios' || name === 'editar' ? 'treinos' : name === 'preferencias' ? '' : name;
+  const tabKey = name === 'exercicios' || name === 'editar' ? 'treinos' : name === 'preferencias' || name === 'corpo' ? '' : name;
   $('#tabbar').innerHTML = TABS.map(([r, icn, label]) => `<a href="#/${r}" class="${r === tabKey ? 'on' : ''}">${ic(icn)}<span>${label}</span></a>`).join('');
   $('#tabbar').hidden = name === 'editar';
   window.scrollTo(0, key === _lastRoute ? y : 0);
@@ -106,6 +106,14 @@ function renderHome() {
     <div class="stat">${ic('dumbbell')}<div class="stat-v">${fmtVol(v7)}</div><div class="stat-l">volume 7 dias${vDelta != null ? ` <b class="${vDelta >= 0 ? 'pos' : 'neg'}">${vDelta >= 0 ? '+' : ''}${fmtN(vDelta)}%</b>` : ''}</div></div>
     <div class="stat wide" ${lastS ? `data-act="sessOpen" data-id="${lastS.id}"` : ''}>${ic('history')}<div class="stat-v">${lastS ? relDay(lastS.start) : '—'}</div><div class="stat-l">${lastS ? `último treino · ${esc(lastS.workoutName)} · ${fmtDur(lastS.duration)}` : 'nenhum treino registrado'}</div></div>
   </section>`;
+
+  // Corpo e energia
+  const wNow = latestField('weight'), en = energy(DB.ui.energyDays || 28);
+  html += `<a class="card body-mini" href="#/corpo"><div class="card-head"><h3>Corpo e energia</h3>${ic('right')}</div>
+    ${wNow || en ? `<div class="run-mini-body">
+      <div><b>${wNow ? fmtN(wNow.weight, 1) + ' ' + unit() : '—'}</b><span class="muted">${wNow ? 'peso · ' + relDay(parseDayKey(wNow.date)) : 'registre seu peso'}</span></div>
+      <div><b>${en ? '~' + kcalFmt(en.total) : '—'}</b><span class="muted">${en ? `kcal/dia · média ${en.days} ${en.days === 1 ? 'dia' : 'dias'}` : 'complete os dados básicos'}</span></div></div>`
+    : `<p class="muted small">Registre peso e medidas para ver seus índices e o gasto calórico médio estimado.</p>`}</a>`;
 
   // Mapa (7 dias)
   const st7 = muscleStats(sessionsBetween(addDays(startOfDay(now), -6), now));
@@ -713,6 +721,7 @@ function sessRender(w) {
     <small class="muted">${lower(fmtDate(s.start, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }))} · ${fmtTime(s.start)}</small>
     <h3 class="sheet-title">${esc(s.workoutName)}</h3>
     <div class="mini-stats four"><div><small>Duração</small><b>${fmtDur(s.duration)}</b></div><div><small>Exercícios</small><b>${st.exs}</b></div><div><small>Séries</small><b>${st.sets}</b></div><div><small>Volume</small><b>${fmtVol(st.vol)}</b></div></div>
+    ${sessionKcal(s) ? `<p class="muted small">Gasto estimado do treino: ~${fmtN(sessionKcal(s))} kcal (além do basal)</p>` : ''}
     ${s.exercises.map((e, ei) => {
       const name = getEx(e.exerciseId)?.name || e.name, c = cmpBy[name];
       return `<div class="sess-ex"><div class="sess-ex-h"><b>${esc(name)}</b>${c && c.kind === 'up' ? `<span class="pill pos">${ic('up')}${esc(c.text)}</span>` : ''}</div>

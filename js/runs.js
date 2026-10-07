@@ -209,6 +209,7 @@ ACT.runOpen = el => {
       <div><small>Elevação</small><b>${r.elevation ? fmtN(r.elevation) + ' m' : '—'}</b></div>
       <div><small>FC média / máx.</small><b>${r.avgHr ? `${r.avgHr}${r.maxHr ? ' / ' + r.maxHr : ''} bpm` : '—'}</b></div>
       ${r.cadence ? `<div><small>Cadência</small><b>${r.cadence} ppm</b></div>` : ''}
+      ${runKcal(r) ? `<div><small>Gasto estimado</small><b>~${fmtN(runKcal(r))} kcal</b></div>` : ''}
     </div>
     <label class="field"><span>Observações</span><textarea data-live="runNote" data-id="${r.id}" rows="2" placeholder="Como foi a corrida?">${esc(r.notes || '')}</textarea></label>
     ${r.stravaId ? `<a class="btn btn-ghost btn-block" href="https://www.strava.com/activities/${r.stravaId}" target="_blank" rel="noopener">Ver no Strava</a>` : ''}

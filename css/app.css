@@ -577,3 +577,33 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
 .cal-legend i.ran { background: var(--run); border-radius: 50%; width: 10px; height: 10px; }
 .mini-stats > div[data-act] { cursor: pointer; }
 .tabbar a { font-size: 10.5px; }
+
+/* ===== Corpo e energia ===== */
+.basics { text-align: left; width: 100%; display: block; }
+.basics .card-head { margin-bottom: 8px; }
+.basics-row { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--text-2); }
+.basics-row i { color: var(--text-3); font-style: normal; border-bottom: 1px dashed var(--line-2); }
+.energy { display: flex; flex-direction: column; gap: 12px; }
+.energy .card-head { margin-bottom: 0; }
+.energy .card-head .seg { flex: none; }
+.kcal-big { font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.kcal-big small { font-size: 15px; color: var(--text-2); font-weight: 600; letter-spacing: 0; }
+.stack-bar { display: flex; height: 12px; border-radius: 99px; overflow: hidden; gap: 2px; }
+.stack-bar i, .energy-list i { display: block; }
+.eb-base { background: var(--text-3); } .eb-life { background: var(--i2); } .eb-strength { background: var(--accent); } .eb-run { background: var(--run); }
+.energy-list { display: flex; flex-direction: column; }
+.energy-list > div { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.energy-list > div:last-child { border-bottom: 0; }
+.energy-list > div[data-act] { cursor: pointer; }
+.energy-list i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.energy-list span { flex: 1; display: flex; flex-direction: column; font-size: 14.5px; }
+.energy-list small { color: var(--text-3); font-size: 12px; }
+.energy-list b { font-weight: 700; }
+.mini-stats small.up { color: var(--text-2); } .mini-stats small.dn { color: var(--text-2); }
+.opt-list { display: flex; flex-direction: column; gap: 8px; }
+.opt { display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); border: 2px solid transparent; }
+.opt small { color: var(--text-2); font-size: 13px; }
+.opt.on { border-color: var(--accent); background: var(--accent-soft); }
+.body-mini { display: block; }
+.body-mini .card-head .ic { color: var(--text-3); }
+.body-mini .run-mini-body b { color: var(--text); }
