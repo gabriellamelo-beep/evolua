@@ -132,7 +132,8 @@ function renderExercise() {
 
   return `<section class="run-ex" id="runEx">
     <div class="ex-head">
-      <div><small class="muted">Exercício ${a.cur + 1} de ${a.exercises.length}</small>
+      ${info?.image ? `<button class="ex-anim" data-act="exOpen" data-id="${info.id}" aria-label="Ver execução"><img src="${esc(info.image)}" alt=""></button>` : ''}
+      <div class="ex-head-main"><small class="muted">Exercício ${a.cur + 1} de ${a.exercises.length}</small>
         <h2>${esc(info?.name || ex.name)}</h2>
         <div class="ex-tags">${info ? `<span>${mName(info.primary)}</span>${info.secondary.slice(0, 2).map(m => `<span class="sec">${mName(m)}</span>`).join('')}<span class="sec">${esc(info.equipment)}</span>` : ''}</div>
       </div>

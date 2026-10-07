@@ -130,8 +130,13 @@ const EXERCISE_LIBRARY = [
   ['bird-dog', 'Bird dog', 'lombar', 'gluteos abdomen', 'Peso corporal', 'Em quatro apoios, estenda braço e perna opostos mantendo o quadril estável.'],
   ['superman', 'Superman', 'lombar', 'gluteos', 'Peso corporal', 'Deitada de bruços, eleve braços e pernas ao mesmo tempo.'],
 ].map(([id, name, primary, sec, equipment, instructions]) => ({
-  id, name, primary, secondary: sec ? sec.split(' ') : [], equipment, instructions, image: '', builtin: true,
+  id, name, primary, secondary: sec ? sec.split(' ') : [], equipment, instructions, image: exerciseAnim(id), builtin: true,
 }));
+
+// Animações de execução geradas por tools/gen_anim.py (img/ex/<id>.gif).
+function exerciseAnim(id) {
+  return ['leg-press-45', 'panturrilha-leg', 'cadeira-extensora'].includes(id) ? `img/ex/${id}.gif` : '';
+}
 
 // Treinos iniciais (podem ser editados ou excluídos). Sem histórico inventado.
 function seedWorkouts() {

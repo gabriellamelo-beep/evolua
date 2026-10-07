@@ -247,6 +247,7 @@ function edItem(it, i) {
   return `<li class="ed-item ${open ? 'open' : ''}" data-i="${i}">
     <div class="ed-row">
       <span class="drag" aria-label="Arrastar para reordenar">${ic('grip')}</span>
+      ${exThumb(ex)}
       <div class="ed-main" data-act="edToggle" data-i="${i}">
         <div class="ed-name">${esc(ex?.name || 'Exercício removido')}</div>
         <div class="ed-sub">${it.sets} × ${repRange(it)} · ${it.load !== '' && it.load != null ? fmtLoad(it.load) : 'sem carga inicial'} · ${fmtRest(it.rest)}</div>
@@ -364,13 +365,16 @@ function renderLibrary() {
     ${groupFilterChips('libG', g)}
     <div id="libList">${libListHTML(q, g)}</div>`;
 }
+function exThumb(e) {
+  return e?.image ? `<img class="ex-thumb" src="${esc(e.image)}" alt="" loading="lazy">` : '';
+}
 function libListHTML(q, g) {
   const list = filterExercises(q, g);
   if (!list.length) return emptyState('search', 'Nada encontrado', 'Tente outro termo ou crie um exercício personalizado.');
   let cur = null, html = '';
   list.forEach(e => {
     if (e.primary !== cur) { if (cur) html += '</div>'; cur = e.primary; html += `<h4 class="group-h">${REGIONS[MUSCLES[cur].region]} · ${mName(cur)}</h4><div class="list card">`; }
-    html += `<div class="row" data-act="exOpen" data-id="${e.id}"><div class="row-main"><b>${esc(e.name)}${e.builtin ? '' : ' <span class="pill sm">pessoal</span>'}</b><span class="muted">${esc(e.equipment)}${e.secondary.length ? ' · ' + e.secondary.map(mName).join(', ') : ''}</span></div>${ic('right', 'chev')}</div>`;
+    html += `<div class="row" data-act="exOpen" data-id="${e.id}">${exThumb(e)}<div class="row-main"><b>${esc(e.name)}${e.builtin ? '' : ' <span class="pill sm">pessoal</span>'}</b><span class="muted">${esc(e.equipment)}${e.secondary.length ? ' · ' + e.secondary.map(mName).join(', ') : ''}</span></div>${ic('right', 'chev')}</div>`;
   });
   return html + '</div>';
 }
