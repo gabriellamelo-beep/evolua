@@ -145,9 +145,9 @@ function renderHome() {
     html += `<section class="card"><div class="card-head"><h3>Insights</h3><a class="link" href="#/evolucao" data-act="evoTab" data-v="ins">Ver todos</a></div>${insightList(ins)}</section>`;
   }
 
-  if (DB.sessions.length >= 3) {
+  if (backupDue()) {
     const lb = p.lastBackup ? daysBetween(p.lastBackup, now) : null;
-    if (lb === null || lb > 14) html += `<button class="backup-nudge" data-act="exportJson">${ic('download')}<span>${lb === null ? 'Você ainda não fez backup dos seus dados.' : `Último backup há ${lb} dias.`} <b>Exportar agora</b></span></button>`;
+    html += `<button class="backup-nudge" data-act="exportJson">${ic('download')}<span>${lb === null ? 'Você ainda não fez backup dos seus dados.' : `Último backup há ${lb} dias.`} <b>Salvar backup agora</b></span></button>`;
   }
   return html;
 }
@@ -814,9 +814,9 @@ function renderPrefs() {
   </section>
   <h4 class="group-h">Dados</h4>
   <section class="card form">
-    <p class="muted small">Tudo fica salvo neste aparelho, no navegador. Exporte backups com frequência — e para levar seus dados para outro aparelho, exporte aqui e importe lá.${p.lastBackup ? ` Último backup: ${fmtDate(p.lastBackup)}.` : ''}</p>
+    <p class="muted small">Tudo fica salvo neste aparelho, no navegador. Salve um backup toda semana: no celular, escolha “Salvar em Arquivos” e guarde no iCloud Drive ou no Google Drive. Para levar seus dados para outro aparelho, salve aqui e importe lá.${p.lastBackup ? ` Último backup: ${fmtDate(p.lastBackup)}.` : ''}</p>
     <div class="btn-col">
-      <button class="btn btn-soft" data-act="exportJson">${ic('download')}Exportar backup (JSON)</button>
+      <button class="btn btn-soft" data-act="exportJson">${ic('download')}Salvar backup</button>
       <button class="btn btn-soft" data-act="exportCsv">${ic('download')}Exportar séries (CSV)</button>
       <label class="btn btn-soft">${ic('upload')}Importar backup<input type="file" accept=".json,application/json" data-bind="importJson" hidden></label>
       ${RT_INSTALL.evt ? `<button class="btn btn-primary" data-act="install">Instalar como app</button>` : ''}
@@ -846,11 +846,29 @@ ACT.prefNum = el => { const k = el.dataset.k; DB.profile[k] = Math.max(+el.datas
 ACT.prefArr = el => { const k = el.dataset.k, v = el.dataset.num ? +el.dataset.v : el.dataset.v, a = DB.profile[k]; DB.profile[k] = a.includes(v) ? a.filter(x => x !== v) : [...a, v]; saveDB(); rerender(); };
 ACT.prio = el => { const v = el.dataset.v; if (v === 'normal') delete DB.profile.priorities[el.dataset.m]; else DB.profile.priorities[el.dataset.m] = v; saveDB(); rerender(); };
 
-ACT.exportJson = () => {
+// Lembrete: há treinos registrados e o último backup tem mais de 7 dias (ou nunca foi feito).
+function backupDue() {
+  const lb = DB.profile.lastBackup;
+  return DB.sessions.length > 0 && (!lb || daysBetween(lb, new Date()) > 7);
+}
+function backupDone() {
   DB.profile.lastBackup = new Date().toISOString(); saveDB();
-  download(`evolua-backup-${dayKey(new Date())}.json`, JSON.stringify({ app: 'evolua', version: 1, exportedAt: new Date().toISOString(), data: DB }), 'application/json');
-  toast('Backup exportado');
-  if (parseHash().name === '') rerender();
+  toast('Backup salvo');
+  if (RT.summary) renderRunner(); else if (parseHash().name === '' || parseHash().name === 'preferencias') rerender();
+}
+// No celular abre o menu de compartilhar (Salvar em Arquivos → iCloud Drive / Google Drive); no computador, baixa o arquivo.
+ACT.exportJson = () => {
+  const name = `evolua-backup-${dayKey(new Date())}.json`;
+  const json = JSON.stringify({ app: 'evolua', version: 1, exportedAt: new Date().toISOString(), data: DB });
+  const file = typeof File === 'function' ? new File([json], name, { type: 'application/json' }) : null;
+  if (file && navigator.canShare?.({ files: [file] })) {
+    navigator.share({ files: [file], title: 'Backup do Evolua' }).then(backupDone).catch(err => {
+      if (err?.name !== 'AbortError') { download(name, json, 'application/json'); backupDone(); }
+    });
+    return;
+  }
+  download(name, json, 'application/json');
+  backupDone();
 };
 ACT.exportCsv = () => {
   const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
