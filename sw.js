@@ -1,5 +1,5 @@
 /* Service worker: funciona offline com cache do app. Altere VERSION a cada publicação. */
-const VERSION = 'evolua-v5';
+const VERSION = 'evolua-v6';
 const ASSETS = ['./', 'index.html', 'css/app.css', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
   'img/ex/leg-press-45.gif', 'img/ex/panturrilha-leg.gif', 'img/ex/cadeira-extensora.gif',
   'js/data.js', 'js/store.js', 'js/ui.js', 'js/body.js', 'js/charts.js', 'js/app.js', 'js/runner.js', 'js/runs.js', 'js/corpo.js', 'js/main.js'];

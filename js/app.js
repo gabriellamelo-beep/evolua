@@ -731,8 +731,10 @@ function sessRender(w) {
       return `<div class="sess-ex"><div class="sess-ex-h"><b>${esc(name)}</b>${c && c.kind === 'up' ? `<span class="pill pos">${ic('up')}${esc(c.text)}</span>` : ''}</div>
         ${e.sets.map((x, i) => SESS_EDIT ? `<div class="sess-set edit"><span>${i + 1}</span><input type="number" inputmode="decimal" step="any" data-live="sessSet" data-e="${ei}" data-i="${i}" data-f="load" value="${x.load}"><i>${unit()} ×</i><input type="number" inputmode="numeric" data-live="sessSet" data-e="${ei}" data-i="${i}" data-f="reps" value="${x.reps}"><button class="icon-btn" data-act="sessDelSet" data-e="${ei}" data-i="${i}" aria-label="Remover série">${ic('x')}</button></div>`
         : `<div class="sess-set"><span>${i + 1}</span><b>${fmtLoad(x.load)} × ${x.reps}</b>${x.note ? `<em>${esc(x.note)}</em>` : ''}</div>`).join('')}
+        ${SESS_EDIT ? `<button class="btn btn-text btn-sm sess-add-set" data-act="sessAddSet" data-e="${ei}">${ic('plus')}Adicionar série</button>` : ''}
         ${e.notes ? `<p class="sess-note">${ic('note')}${esc(e.notes)}</p>` : ''}</div>`;
     }).join('')}
+    ${SESS_EDIT ? `<button class="btn btn-soft btn-block" data-act="sessAddEx">${ic('plus')}Adicionar exercício</button>` : ''}
     <div class="sheet-actions">
       <button class="btn btn-ghost danger" data-act="sessDelete">${ic('trash')}Excluir</button>
       <button class="btn ${SESS_EDIT ? 'btn-primary' : 'btn-ghost'}" data-act="sessEdit">${SESS_EDIT ? ic('check') + 'Concluir edição' : ic('edit') + 'Editar'}</button>
@@ -749,6 +751,25 @@ ACT.sessDelSet = el => {
   e.sets.splice(+el.dataset.i, 1);
   if (!e.sets.length) s.exercises.splice(+el.dataset.e, 1);
   saveDB(); sessRender(w);
+};
+ACT.sessAddSet = el => {
+  const w = curSessSheet(), s = DB.sessions.find(x => x.id === w._sid), e = s.exercises[+el.dataset.e];
+  const last = e.sets[e.sets.length - 1];
+  e.sets.push({ load: last ? +last.load || 0 : 0, reps: last ? +last.reps || 0 : 10, done: true, note: '' });
+  saveDB(); sessRender(w);
+};
+// Inclui exercícios esquecidos num treino já concluído; as séries entram como feitas, com a última carga registrada.
+ACT.sessAddEx = () => {
+  const w = curSessSheet();
+  openPicker({ multi: true, title: 'Adicionar exercícios', onPick: ids => {
+    const s = DB.sessions.find(x => x.id === w._sid); if (!s) return;
+    ids.forEach(id => {
+      const e = buildExercise(id);
+      e.sets.forEach(x => { x.load = +x.load || 0; x.reps = +x.reps || 10; x.done = true; });
+      s.exercises.push(e);
+    });
+    saveDB(); sessRender(w);
+  } });
 };
 ACT.sessDelete = async () => {
   const w = curSessSheet(), id = w._sid;
