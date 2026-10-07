@@ -57,6 +57,7 @@ function migrate(db) {
   const have = new Set(db.exercises.map(e => e.id));
   const removed = new Set(db.removedBuiltins);
   EXERCISE_LIBRARY.forEach(e => { if (!have.has(e.id) && !removed.has(e.id)) db.exercises.push({ ...e, secondary: [...e.secondary] }); });
+  db.exercises.forEach(e => { if (e.builtin && !e.image) e.image = exerciseAnim(e.id); });
   db.workouts = db.workouts || [];
   db.sessions = db.sessions || [];
   db.runs = db.runs || [];

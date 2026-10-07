@@ -247,6 +247,7 @@ function edItem(it, i) {
   return `<li class="ed-item ${open ? 'open' : ''}" data-i="${i}">
     <div class="ed-row">
       <span class="drag" aria-label="Arrastar para reordenar">${ic('grip')}</span>
+      ${exThumb(ex)}
       <div class="ed-main" data-act="edToggle" data-i="${i}">
         <div class="ed-name">${esc(ex?.name || 'Exercício removido')}</div>
         <div class="ed-sub">${it.sets} × ${repRange(it)} · ${it.load !== '' && it.load != null ? fmtLoad(it.load) : 'sem carga inicial'} · ${fmtRest(it.rest)}</div>
@@ -364,13 +365,16 @@ function renderLibrary() {
     ${groupFilterChips('libG', g)}
     <div id="libList">${libListHTML(q, g)}</div>`;
 }
+function exThumb(e) {
+  return e?.image ? `<span class="ex-thumb"><img src="${esc(e.image)}" alt="" loading="lazy"></span>` : '';
+}
 function libListHTML(q, g) {
   const list = filterExercises(q, g);
   if (!list.length) return emptyState('search', 'Nada encontrado', 'Tente outro termo ou crie um exercício personalizado.');
   let cur = null, html = '';
   list.forEach(e => {
     if (e.primary !== cur) { if (cur) html += '</div>'; cur = e.primary; html += `<h4 class="group-h">${REGIONS[MUSCLES[cur].region]} · ${mName(cur)}</h4><div class="list card">`; }
-    html += `<div class="row" data-act="exOpen" data-id="${e.id}"><div class="row-main"><b>${esc(e.name)}${e.builtin ? '' : ' <span class="pill sm">pessoal</span>'}</b><span class="muted">${esc(e.equipment)}${e.secondary.length ? ' · ' + e.secondary.map(mName).join(', ') : ''}</span></div>${ic('right', 'chev')}</div>`;
+    html += `<div class="row" data-act="exOpen" data-id="${e.id}">${exThumb(e)}<div class="row-main"><b>${esc(e.name)}${e.builtin ? '' : ' <span class="pill sm">pessoal</span>'}</b><span class="muted">${esc(e.equipment)}${e.secondary.length ? ' · ' + e.secondary.map(mName).join(', ') : ''}</span></div>${ic('right', 'chev')}</div>`;
   });
   return html + '</div>';
 }
@@ -727,8 +731,10 @@ function sessRender(w) {
       return `<div class="sess-ex"><div class="sess-ex-h"><b>${esc(name)}</b>${c && c.kind === 'up' ? `<span class="pill pos">${ic('up')}${esc(c.text)}</span>` : ''}</div>
         ${e.sets.map((x, i) => SESS_EDIT ? `<div class="sess-set edit"><span>${i + 1}</span><input type="number" inputmode="decimal" step="any" data-live="sessSet" data-e="${ei}" data-i="${i}" data-f="load" value="${x.load}"><i>${unit()} ×</i><input type="number" inputmode="numeric" data-live="sessSet" data-e="${ei}" data-i="${i}" data-f="reps" value="${x.reps}"><button class="icon-btn" data-act="sessDelSet" data-e="${ei}" data-i="${i}" aria-label="Remover série">${ic('x')}</button></div>`
         : `<div class="sess-set"><span>${i + 1}</span><b>${fmtLoad(x.load)} × ${x.reps}</b>${x.note ? `<em>${esc(x.note)}</em>` : ''}</div>`).join('')}
+        ${SESS_EDIT ? `<button class="btn btn-text btn-sm sess-add-set" data-act="sessAddSet" data-e="${ei}">${ic('plus')}Adicionar série</button>` : ''}
         ${e.notes ? `<p class="sess-note">${ic('note')}${esc(e.notes)}</p>` : ''}</div>`;
     }).join('')}
+    ${SESS_EDIT ? `<button class="btn btn-soft btn-block" data-act="sessAddEx">${ic('plus')}Adicionar exercício</button>` : ''}
     <div class="sheet-actions">
       <button class="btn btn-ghost danger" data-act="sessDelete">${ic('trash')}Excluir</button>
       <button class="btn ${SESS_EDIT ? 'btn-primary' : 'btn-ghost'}" data-act="sessEdit">${SESS_EDIT ? ic('check') + 'Concluir edição' : ic('edit') + 'Editar'}</button>
@@ -745,6 +751,25 @@ ACT.sessDelSet = el => {
   e.sets.splice(+el.dataset.i, 1);
   if (!e.sets.length) s.exercises.splice(+el.dataset.e, 1);
   saveDB(); sessRender(w);
+};
+ACT.sessAddSet = el => {
+  const w = curSessSheet(), s = DB.sessions.find(x => x.id === w._sid), e = s.exercises[+el.dataset.e];
+  const last = e.sets[e.sets.length - 1];
+  e.sets.push({ load: last ? +last.load || 0 : 0, reps: last ? +last.reps || 0 : 10, done: true, note: '' });
+  saveDB(); sessRender(w);
+};
+// Inclui exercícios esquecidos num treino já concluído; as séries entram como feitas, com a última carga registrada.
+ACT.sessAddEx = () => {
+  const w = curSessSheet();
+  openPicker({ multi: true, title: 'Adicionar exercícios', onPick: ids => {
+    const s = DB.sessions.find(x => x.id === w._sid); if (!s) return;
+    ids.forEach(id => {
+      const e = buildExercise(id);
+      e.sets.forEach(x => { x.load = +x.load || 0; x.reps = +x.reps || 10; x.done = true; });
+      s.exercises.push(e);
+    });
+    saveDB(); sessRender(w);
+  } });
 };
 ACT.sessDelete = async () => {
   const w = curSessSheet(), id = w._sid;

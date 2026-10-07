@@ -22,6 +22,18 @@ const EQUIPMENT = ['Barra', 'Halteres', 'Máquina', 'Polia', 'Smith', 'Peso corp
 const GOALS = { hipertrofia: 'Hipertrofia', fortalecimento: 'Fortalecimento', definicao: 'Definição', resistencia: 'Resistência muscular' };
 const DIVISIONS = ['Inferiores', 'Superiores', 'Full body', 'Push', 'Pull', 'Core'];
 
+// Animações de execução geradas por tools/gen_anim.py (img/ex/<id>.gif).
+const ANIMATED = new Set([
+  'afundo', 'agachamento-bulgaro', 'agachamento-goblet', 'agachamento-livre', 'agachamento-smith',
+  'cadeira-extensora', 'cadeira-flexora', 'coice-maquina', 'coice-polia', 'elevacao-pelvica-maquina', 'glute-bridge',
+  'good-morning', 'hack-squat', 'hip-thrust', 'hip-thrust-unilateral', 'leg-press-45', 'leg-press-horizontal',
+  'mesa-flexora', 'panturrilha-em-pe', 'panturrilha-leg', 'panturrilha-sentada', 'panturrilha-unilateral', 'rdl',
+  'step-up', 'stiff', 'terra'
+]);
+function exerciseAnim(id) {
+  return ANIMATED.has(id) ? `img/ex/${id}.gif` : '';
+}
+
 // [id, nome, principal, secundários, equipamento, instruções]
 const EXERCISE_LIBRARY = [
   // Glúteos
@@ -130,7 +142,7 @@ const EXERCISE_LIBRARY = [
   ['bird-dog', 'Bird dog', 'lombar', 'gluteos abdomen', 'Peso corporal', 'Em quatro apoios, estenda braço e perna opostos mantendo o quadril estável.'],
   ['superman', 'Superman', 'lombar', 'gluteos', 'Peso corporal', 'Deitada de bruços, eleve braços e pernas ao mesmo tempo.'],
 ].map(([id, name, primary, sec, equipment, instructions]) => ({
-  id, name, primary, secondary: sec ? sec.split(' ') : [], equipment, instructions, image: '', builtin: true,
+  id, name, primary, secondary: sec ? sec.split(' ') : [], equipment, instructions, image: exerciseAnim(id), builtin: true,
 }));
 
 // Treinos iniciais (podem ser editados ou excluídos). Sem histórico inventado.
