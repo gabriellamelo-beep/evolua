@@ -86,6 +86,7 @@ function saveDB() {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(DB));
     localStorage.setItem('evolua.theme', DB.profile.theme);
+    localStorage.setItem('evolua.changed', String(Date.now()));
   } catch (e) {
     console.error(e);
     toast('Não foi possível salvar no navegador. Exporte um backup.');

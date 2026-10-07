@@ -145,7 +145,9 @@ function renderHome() {
     html += `<section class="card"><div class="card-head"><h3>Insights</h3><a class="link" href="#/evolucao" data-act="evoTab" data-v="ins">Ver todos</a></div>${insightList(ins)}</section>`;
   }
 
-  if (backupDue()) {
+  if (driveConnected() && driveCfg().needsLogin) {
+    html += `<button class="backup-nudge" data-act="driveNow">${ic('refresh')}<span>O backup no Google Drive está pausado. <b>Entrar na conta Google</b></span></button>`;
+  } else if (backupDue()) {
     const lb = p.lastBackup ? daysBetween(p.lastBackup, now) : null;
     html += `<button class="backup-nudge" data-act="exportJson">${ic('download')}<span>${lb === null ? 'Você ainda não fez backup dos seus dados.' : `Último backup há ${lb} dias.`} <b>Salvar backup agora</b></span></button>`;
   }
@@ -814,8 +816,9 @@ function renderPrefs() {
   </section>
   <h4 class="group-h">Dados</h4>
   <section class="card form">
-    <p class="muted small">Tudo fica salvo neste aparelho, no navegador. Salve um backup toda semana: no celular, escolha “Salvar em Arquivos” e guarde no iCloud Drive ou no Google Drive. Para levar seus dados para outro aparelho, salve aqui e importe lá.${p.lastBackup ? ` Último backup: ${fmtDate(p.lastBackup)}.` : ''}</p>
+    <p class="muted small">Tudo fica salvo neste aparelho, no navegador. ${driveConnected() ? 'O backup vai sozinho para o seu Google Drive.' : 'Conecte o Google Drive para o backup ser automático, ou salve um arquivo toda semana (no celular, “Salvar em Arquivos”).'}${p.lastBackup ? ` Último backup: ${fmtDate(p.lastBackup)} às ${fmtTime(p.lastBackup)}.` : ''}</p>
     <div class="btn-col">
+      <button class="btn ${driveConnected() ? 'btn-soft' : 'btn-primary'}" data-act="driveSetup">${ic('refresh')}${driveConnected() ? 'Backup no Google Drive: ativo' : 'Backup automático no Google Drive'}</button>
       <button class="btn btn-soft" data-act="exportJson">${ic('download')}Salvar backup</button>
       <button class="btn btn-soft" data-act="exportCsv">${ic('download')}Exportar séries (CSV)</button>
       <label class="btn btn-soft">${ic('upload')}Importar backup<input type="file" accept=".json,application/json" data-bind="importJson" hidden></label>
@@ -849,6 +852,7 @@ ACT.prio = el => { const v = el.dataset.v; if (v === 'normal') delete DB.profile
 // Lembrete: há treinos registrados e o último backup tem mais de 7 dias (ou nunca foi feito).
 function backupDue() {
   const lb = DB.profile.lastBackup;
+  if (driveConnected() && !driveCfg().needsLogin) return false;
   return DB.sessions.length > 0 && (!lb || daysBetween(lb, new Date()) > 7);
 }
 function backupDone() {
@@ -876,16 +880,16 @@ ACT.exportCsv = () => {
   sortedSessions().forEach(s => s.exercises.forEach(e => { const ex = getEx(e.exerciseId); e.sets.forEach((x, i) => rows.push([dayKey(s.start), fmtTime(s.start), q(s.workoutName), q(ex?.name || e.name), ex ? mName(ex.primary) : '', i + 1, String(x.load).replace('.', ','), unit(), x.reps, q(x.note)].join(';'))); }));
   download(`evolua-series-${dayKey(new Date())}.csv`, '﻿' + rows.join('\n'), 'text/csv');
 };
+async function importBackupData(obj, label = '') {
+  const data = obj.data || obj;
+  if (!Array.isArray(data.sessions) || !Array.isArray(data.workouts)) throw new Error('formato');
+  if (!await confirmSheet({ title: `Importar backup${label ? ' ' + label : ''}?`, text: `${data.sessions.length} treinos registrados e ${data.workouts.length} treinos montados. Os dados atuais deste aparelho serão substituídos.`, ok: 'Importar', danger: true })) return;
+  DB = migrate(data); saveDB(); applyTheme(); toast('Backup importado'); rerender();
+}
 BIND.importJson = async el => {
   const file = el.files[0]; el.value = '';
   if (!file) return;
-  try {
-    const obj = JSON.parse(await file.text());
-    const data = obj.data || obj;
-    if (!Array.isArray(data.sessions) || !Array.isArray(data.workouts)) throw new Error('formato');
-    if (!await confirmSheet({ title: 'Importar backup?', text: `${data.sessions.length} treinos registrados e ${data.workouts.length} treinos montados. Os dados atuais deste aparelho serão substituídos.`, ok: 'Importar', danger: true })) return;
-    DB = migrate(data); saveDB(); applyTheme(); toast('Backup importado'); rerender();
-  } catch (e) { console.error(e); toast('Arquivo inválido'); }
+  try { await importBackupData(JSON.parse(await file.text())); } catch (e) { console.error(e); toast('Arquivo inválido'); }
 };
 ACT.resetAll = async () => {
   if (!await confirmSheet({ title: 'Apagar todos os dados?', text: 'Treinos, histórico e preferências serão apagados deste aparelho. Exporte um backup antes se quiser guardar.', ok: 'Apagar tudo', danger: true })) return;
