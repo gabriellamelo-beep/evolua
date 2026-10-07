@@ -224,7 +224,7 @@ ACT.runDelete = async el => {
   const r = DB.runs.find(x => x.id === el.dataset.id);
   closeAllSheets();
   if (!await confirmSheet({ title: 'Excluir esta corrida?', text: r.stravaId ? 'Ela some só do Evolua (continua no Strava) e não será importada de novo.' : 'Esta ação não pode ser desfeita.', ok: 'Excluir', danger: true })) return;
-  DB.runs = DB.runs.filter(x => x.id !== r.id);
+  DB.runs = DB.runs.filter(x => x.id !== r.id); markDeleted('runs', r.id);
   if (r.stravaId) DB.runsDeleted = [...(DB.runsDeleted || []), r.stravaId];
   saveDB(); toast('Corrida excluída'); rerender();
 };

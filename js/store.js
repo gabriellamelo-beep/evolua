@@ -65,8 +65,23 @@ function migrate(db) {
   db.body = db.body || [];
   db.active = db.active || null;
   db.ui = db.ui || {};
+  db.deleted = db.deleted || {};
   return db;
 }
+
+// Exclusões ficam registradas para a sincronização não "ressuscitar" o item vindo de outro aparelho.
+function markDeleted(kind, id) {
+  DB.deleted = DB.deleted || {};
+  const a = DB.deleted[kind] = DB.deleted[kind] || [];
+  if (!a.includes(id)) a.push(id);
+}
+
+// Parte sincronizada dos dados: tudo menos o treino em andamento e o estado da tela (são deste aparelho).
+const LOCAL_ONLY = ['active', 'ui', 'savedAt'];
+function syncedJson(db) {
+  return JSON.stringify(db, function (k, v) { return this === db && LOCAL_ONLY.includes(k) ? undefined : v; });
+}
+let _lastSynced = null;
 
 let DB;
 let _exIndex = null;
@@ -75,7 +90,7 @@ let _sorted = null;
 function loadDB() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) { DB = migrate(JSON.parse(raw)); return; }
+    if (raw) { DB = migrate(JSON.parse(raw)); _lastSynced = syncedJson(DB); return; }
   } catch (e) { console.error(e); }
   DB = defaultDB();
   saveDB();
@@ -84,9 +99,15 @@ function loadDB() {
 function saveDB() {
   _exIndex = null; _sorted = null;
   try {
+    const synced = syncedJson(DB);
+    const changed = synced !== _lastSynced;
+    if (changed) { _lastSynced = synced; DB.savedAt = new Date().toISOString(); }
     localStorage.setItem(STORE_KEY, JSON.stringify(DB));
     localStorage.setItem('evolua.theme', DB.profile.theme);
-    localStorage.setItem('evolua.changed', String(Date.now()));
+    if (changed) {
+      localStorage.setItem('evolua.changed', String(Date.now()));
+      if (typeof driveOnSave === 'function') driveOnSave();
+    }
   } catch (e) {
     console.error(e);
     toast('Não foi possível salvar no navegador. Exporte um backup.');
