@@ -3,7 +3,7 @@
 
 function niceTicks(min, max) { return [min, (min + max) / 2, max]; }
 
-function lineChart(pts, { h = 170, fmt = v => fmtN(v, 1), unitLabel = '' } = {}) {
+function lineChart(pts, { h = 170, fmt = v => fmtN(v, 1), unitLabel = '', tickFmt = v => fmtN(v, v < 10 ? 1 : 0) } = {}) {
   if (!pts.length) return `<div class="chart-empty">Sem dados ainda</div>`;
   const W = 340, H = h, pl = 36, pr = 14, pt = 22, pb = 24;
   const ys = pts.map(p => p.y);
@@ -14,7 +14,7 @@ function lineChart(pts, { h = 170, fmt = v => fmtN(v, 1), unitLabel = '' } = {})
   const y = v => pt + (1 - (v - min) / (max - min)) * (H - pt - pb);
   const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.y).toFixed(1)}`).join(' ');
   const area = `${line} L${x(pts.length - 1).toFixed(1)} ${H - pb} L${x(0).toFixed(1)} ${H - pb} Z`;
-  const grid = niceTicks(min, max).map(v => `<line class="c-grid" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text class="c-tick" x="${pl - 6}" y="${y(v) + 3}" text-anchor="end">${fmtN(v, v < 10 ? 1 : 0)}</text>`).join('');
+  const grid = niceTicks(min, max).map(v => `<line class="c-grid" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text class="c-tick" x="${pl - 6}" y="${y(v) + 3}" text-anchor="end">${tickFmt(v)}</text>`).join('');
   const lblIdx = pts.length <= 1 ? [0] : pts.length <= 4 ? pts.map((_, i) => i) : [0, Math.floor((pts.length - 1) / 2), pts.length - 1];
   const xl = lblIdx.map(i => `<text class="c-tick" x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 && pts.length > 1 ? 'start' : i === pts.length - 1 && pts.length > 1 ? 'end' : 'middle'}">${esc(pts[i].label)}</text>`).join('');
   const last = pts.length - 1;

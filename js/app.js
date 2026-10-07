@@ -8,11 +8,11 @@ const LIVE = {};  // digitação: data-live (input)
 /* ================= ROTEAMENTO ================= */
 const TABS = [
   ['', 'home', 'Início'], ['treinos', 'dumbbell', 'Treinos'], ['mapa', 'body', 'Mapa'],
-  ['evolucao', 'chart', 'Evolução'], ['historico', 'history', 'Histórico'],
+  ['corridas', 'run', 'Corridas'], ['evolucao', 'chart', 'Evolução'], ['historico', 'history', 'Histórico'],
 ];
 const ROUTES = {
   '': renderHome, treinos: renderWorkouts, exercicios: renderLibrary, editar: renderEditor,
-  mapa: renderMap, evolucao: renderEvolution, historico: renderHistory, preferencias: renderPrefs,
+  mapa: renderMap, corridas: a => renderRuns(a), evolucao: renderEvolution, historico: renderHistory, preferencias: renderPrefs,
 };
 let _lastRoute = null;
 
@@ -124,8 +124,16 @@ function renderHome() {
       <div class="list">${gains.map(g => `<div class="row" data-act="evoGo" data-id="${g.id}"><div class="row-main"><b>${esc(g.name)}</b><span class="muted">${g.seq.slice(-4).map(fmtLoadShort).join(' → ')} ${unit()}</span></div><span class="pill pos">${ic('up')}+${fmtN(g.pct)}%</span></div>`).join('')}</div></section>`;
   }
 
+  const wkRuns = (DB.runs || []).filter(r => new Date(r.start) >= ws);
+  if ((DB.runs || []).length) {
+    const lastRun = runsSorted().at(-1);
+    html += `<a class="card run-mini" href="#/corridas"><div class="card-head"><h3>Corridas · esta semana</h3>${ic('right')}</div>
+      <div class="run-mini-body"><div><b>${fmtKm(sumKm(wkRuns))}</b><span class="muted">${wkRuns.length} ${wkRuns.length === 1 ? 'corrida' : 'corridas'}</span></div>
+      <div><b>${fmtKm(lastRun.distance)}</b><span class="muted">última · ${relDay(lastRun.start)} · ${fmtPace(lastRun.movingTime, lastRun.distance)}</span></div></div></a>`;
+  }
+
   const ins = computeInsights().slice(0, 3);
-  if (ins.length && DB.sessions.length) {
+  if (ins.length && (DB.sessions.length || DB.runs.length)) {
     html += `<section class="card"><div class="card-head"><h3>Insights</h3><a class="link" href="#/evolucao" data-act="evoTab" data-v="ins">Ver todos</a></div>${insightList(ins)}</section>`;
   }
 
@@ -653,28 +661,30 @@ function renderCalendar() {
   const first = new Date(y, mo, 1), days = new Date(y, mo + 1, 0).getDate(), off = (first.getDay() + 6) % 7;
   const byDay = {};
   DB.sessions.forEach(s => (byDay[dayKey(s.start)] = byDay[dayKey(s.start)] || []).push(s));
+  const runDay = {};
+  (DB.runs || []).forEach(r => (runDay[dayKey(r.start)] = runDay[dayKey(r.start)] || []).push(r));
   const firstSess = sortedSessions()[0];
   const planStart = startOfDay(firstSess && firstSess.start < DB.profile.createdAt ? firstSess.start : DB.profile.createdAt);
   const today = startOfDay(now);
   let done = 0, missed = 0, cells = '';
   for (let i = 0; i < off; i++) cells += '<div class="cal-c empty"></div>';
   for (let d = 1; d <= days; d++) {
-    const date = new Date(y, mo, d), k = dayKey(date), ss = byDay[k];
+    const date = new Date(y, mo, d), k = dayKey(date), ss = byDay[k], rr = runDay[k];
     const planned = DB.profile.plannedDays.includes(date.getDay());
     let st = 'rest';
     if (ss) { st = 'done'; done++; }
     else if (planned && date < today && date >= planStart) { st = 'missed'; missed++; }
     else if (planned && date >= today) st = 'planned';
-    cells += `<button class="cal-c ${st} ${k === dayKey(now) ? 'today' : ''}" ${ss ? `data-act="calDay" data-k="${k}"` : 'disabled'}><span>${d}</span>${ss && ss.length > 1 ? `<small>${ss.length}</small>` : ''}</button>`;
+    cells += `<button class="cal-c ${st} ${k === dayKey(now) ? 'today' : ''} ${rr ? 'ran' : ''}" ${ss || rr ? `data-act="calDay" data-k="${k}"` : 'disabled'}><span>${d}</span>${ss && ss.length > 1 ? `<small>${ss.length}</small>` : ''}</button>`;
   }
   const prev = new Date(y, mo - 1, 1), next = new Date(y, mo + 1, 1);
   return `<section class="card cal">
     <div class="cal-head"><button class="icon-btn" data-act="calNav" data-k="${dayKey(prev)}" aria-label="Mês anterior">${ic('left')}</button>
-      <h3>${fmtDate(first, { month: 'long', year: 'numeric' })}</h3>
+      <h3>${fmtDate(first, { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase())}</h3>
       <button class="icon-btn" data-act="calNav" data-k="${dayKey(next)}" aria-label="Próximo mês">${ic('right')}</button></div>
     <div class="cal-grid wk">${['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map(l => `<span>${l}</span>`).join('')}</div>
     <div class="cal-grid">${cells}</div>
-    <div class="cal-legend"><span><i class="done"></i>Realizado</span><span><i class="planned"></i>Planejado</span><span><i class="missed"></i>Perdido</span><span><i class="rest"></i>Descanso</span></div>
+    <div class="cal-legend"><span><i class="done"></i>Realizado</span><span><i class="planned"></i>Planejado</span><span><i class="missed"></i>Perdido</span><span><i class="rest"></i>Descanso</span><span><i class="ran"></i>Corrida</span></div>
   </section>
   <div class="stats"><div class="stat"><div class="stat-v">${done}</div><div class="stat-l">treinos no mês</div></div><div class="stat"><div class="stat-v">${missed}</div><div class="stat-l">dias planejados sem treino</div></div></div>
   <p class="muted small center">Dias planejados vêm das Preferências (${DB.profile.plannedDays.length ? DB.profile.plannedDays.slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map(d => ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][d]).join(', ') : 'nenhum'}).</p>`;
@@ -682,8 +692,10 @@ function renderCalendar() {
 ACT.calNav = el => { DB.ui.calMonth = el.dataset.k; saveDB(); rerender(); };
 ACT.calDay = el => {
   const ss = DB.sessions.filter(s => dayKey(s.start) === el.dataset.k);
-  if (ss.length === 1) return ACT.sessOpen({ dataset: { id: ss[0].id } });
-  openSheet(`<h3 class="sheet-title">${fmtDate(parseDayKey(el.dataset.k))}</h3><div class="list">${ss.map(s => `<div class="row" data-act="sessOpen" data-id="${s.id}"><div class="row-main"><b>${esc(s.workoutName)}</b><span class="muted">${fmtTime(s.start)} · ${fmtDur(s.duration)}</span></div>${ic('right', 'chev')}</div>`).join('')}</div>`);
+  const rr = (DB.runs || []).filter(r => dayKey(r.start) === el.dataset.k);
+  if (ss.length === 1 && !rr.length) return ACT.sessOpen({ dataset: { id: ss[0].id } });
+  if (rr.length === 1 && !ss.length) return ACT.runOpen({ dataset: { id: rr[0].id } });
+  openSheet(`<h3 class="sheet-title">${fmtDate(parseDayKey(el.dataset.k))}</h3><div class="list">${ss.map(s => `<div class="row" data-act="sessOpen" data-id="${s.id}"><div class="row-main"><b>${esc(s.workoutName)}</b><span class="muted">${fmtTime(s.start)} · ${fmtDur(s.duration)}</span></div>${ic('right', 'chev')}</div>`).join('')}${rr.map(r => `<div class="row" data-act="runOpen" data-id="${r.id}"><div class="row-main"><b>${esc(r.name)}</b><span class="muted">${fmtTime(r.start)} · ${fmtKm(r.distance)} · ${fmtPace(r.movingTime, r.distance)}</span></div>${ic('right', 'chev')}</div>`).join('')}</div>`);
 };
 
 let SESS_EDIT = false;

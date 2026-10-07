@@ -26,6 +26,7 @@ loadDB();
 applyTheme();
 route();
 if (DB.active) openRunner();
+stravaHandleRedirect();
 
 if (navigator.storage?.persist) navigator.storage.persist().catch(() => { });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

@@ -35,6 +35,8 @@ function defaultDB() {
     exercises: EXERCISE_LIBRARY.map(e => ({ ...e, secondary: [...e.secondary] })),
     workouts: seedWorkouts(),
     sessions: [],
+    runs: [],
+    runsDeleted: [],
     active: null,
     removedBuiltins: [],
     ui: {},
@@ -52,6 +54,8 @@ function migrate(db) {
   EXERCISE_LIBRARY.forEach(e => { if (!have.has(e.id) && !removed.has(e.id)) db.exercises.push({ ...e, secondary: [...e.secondary] }); });
   db.workouts = db.workouts || [];
   db.sessions = db.sessions || [];
+  db.runs = db.runs || [];
+  db.runsDeleted = db.runsDeleted || [];
   db.active = db.active || null;
   db.ui = db.ui || {};
   return db;
@@ -319,7 +323,7 @@ function loadGains(sinceDays) {
 /* ---------- Insights descritivos (somente a partir dos dados registrados) ---------- */
 function computeInsights() {
   const out = [];
-  if (!DB.sessions.length) return out;
+  if (!DB.sessions.length && !(DB.runs || []).length) return out;
   const now = new Date(), today = startOfDay(now);
   const a = muscleStats(sessionsBetween(addDays(today, -27), now));
   const b = muscleStats(sessionsBetween(addDays(today, -55), endOfDay(addDays(today, -28))));
@@ -352,6 +356,10 @@ function computeInsights() {
     const top = Object.keys(reg).sort((x, y) => reg[y] - reg[x])[0];
     out.push({ icon: 'pie', text: `${REGIONS[top]} representam ${fmtN(reg[top] / tot * 100)}% das séries das últimas duas semanas (inferiores ${fmtN(reg.inf / tot * 100)}% · superiores ${fmtN(reg.sup / tot * 100)}% · core ${fmtN(reg.core / tot * 100)}%).` });
   }
+
+  const runsIn = (a, b) => (DB.runs || []).filter(r => { const t = new Date(r.start); return t >= a && t <= b; }).reduce((s, r) => s + r.distance, 0) / 1000;
+  const r4 = runsIn(addDays(today, -27), now), r8 = runsIn(addDays(today, -55), endOfDay(addDays(today, -28)));
+  if (r4 > 0) out.push({ icon: 'run', text: `Você correu ${fmtN(r4, 1)} km nas últimas 4 semanas${r8 > 0 ? ` (${fmtN(r8, 1)} km nas 4 anteriores)` : ''}.` });
 
   const wc = sessionsBetween(startOfWeek(now), now).length;
   out.push({ icon: 'calendar', text: `Nesta semana: ${wc} de ${DB.profile.weeklyTarget} treinos planejados.` });
