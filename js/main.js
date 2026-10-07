@@ -30,5 +30,12 @@ stravaHandleRedirect();
 
 if (navigator.storage?.persist) navigator.storage.persist().catch(() => { });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW', err));
+  // Versão nova instalada: recarrega uma vez (os dados e o treino em andamento ficam salvos).
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded || RUNSYNC.busy) return;
+    reloaded = true; location.reload();
+  });
+  navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(err => console.warn('SW', err));
 }
