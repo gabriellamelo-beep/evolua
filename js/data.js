@@ -24,19 +24,22 @@ const DIVISIONS = ['Inferiores', 'Superiores', 'Full body', 'Push', 'Pull', 'Cor
 
 // Animações de execução geradas por tools/gen_anim.py (img/ex/<id>.gif).
 const ANIMATED = new Set([
-  'abdominal-crunch', 'abdominal-maquina', 'abdominal-polia', 'afundo', 'agachamento-bulgaro', 'agachamento-goblet', 'agachamento-livre',
-  'agachamento-smith', 'agachamento-sumo', 'barra-fixa', 'bird-dog', 'cadeira-extensora', 'cadeira-flexora',
-  'coice-maquina', 'coice-polia', 'desenvolvimento-barra', 'desenvolvimento-halteres', 'desenvolvimento-maquina',
-  'elevacao-frontal', 'elevacao-pelvica-maquina', 'elevacao-pernas', 'encolhimento', 'face-pull', 'flexao',
-  'flexora-em-pe', 'glute-bridge', 'good-morning', 'hack-squat', 'hip-thrust', 'hip-thrust-unilateral',
-  'hiperextensao-gluteo', 'hiperextensao-lombar', 'leg-press-45', 'leg-press-horizontal', 'mergulho', 'mesa-flexora',
-  'nordic', 'panturrilha-em-pe', 'panturrilha-leg', 'panturrilha-sentada', 'panturrilha-unilateral', 'prancha',
-  'pulldown-corda', 'puxada-frontal', 'puxada-triangulo', 'rdl', 'remada-alta', 'remada-baixa', 'remada-cavalinho',
-  'remada-curvada', 'remada-maquina', 'remada-unilateral', 'roda-abdominal', 'rosca-alternada', 'rosca-concentrada',
-  'rosca-direta', 'rosca-inclinada', 'rosca-martelo', 'rosca-polia', 'rosca-scott', 'sissy-squat', 'step-up',
-  'stiff', 'superman', 'supino-fechado', 'supino-inclinado', 'supino-inclinado-halteres', 'supino-maquina',
-  'supino-reto', 'supino-reto-halteres', 'terra', 'triceps-coice', 'triceps-corda', 'triceps-frances',
-  'triceps-pulley', 'triceps-testa'
+  'abdominal-bicicleta', 'abdominal-crunch', 'abdominal-maquina', 'abdominal-polia', 'abducao-deitada',
+  'abducao-polia', 'aducao-polia', 'afundo', 'agachamento-bulgaro', 'agachamento-goblet', 'agachamento-livre',
+  'agachamento-smith', 'agachamento-sumo', 'arnold', 'barra-fixa', 'bird-dog', 'cadeira-abdutora', 'cadeira-adutora',
+  'cadeira-extensora', 'cadeira-flexora', 'coice-maquina', 'coice-polia', 'copenhagen', 'crossover', 'crucifixo',
+  'crucifixo-invertido', 'desenvolvimento-barra', 'desenvolvimento-halteres', 'desenvolvimento-maquina',
+  'elevacao-frontal', 'elevacao-lateral', 'elevacao-lateral-polia', 'elevacao-pelvica-maquina', 'elevacao-pernas',
+  'encolhimento', 'face-pull', 'flexao', 'flexora-em-pe', 'glute-bridge', 'good-morning', 'hack-squat', 'hip-thrust',
+  'hip-thrust-unilateral', 'hiperextensao-gluteo', 'hiperextensao-lombar', 'kickback-smith', 'leg-press-45',
+  'leg-press-horizontal', 'mergulho', 'mesa-flexora', 'monster-walk', 'nordic', 'pallof', 'panturrilha-em-pe',
+  'panturrilha-leg', 'panturrilha-sentada', 'panturrilha-unilateral', 'peck-deck', 'prancha', 'pulldown-corda',
+  'puxada-frontal', 'puxada-triangulo', 'rdl', 'remada-alta', 'remada-baixa', 'remada-cavalinho', 'remada-curvada',
+  'remada-maquina', 'remada-unilateral', 'roda-abdominal', 'rosca-alternada', 'rosca-concentrada', 'rosca-direta',
+  'rosca-inclinada', 'rosca-martelo', 'rosca-polia', 'rosca-scott', 'sissy-squat', 'step-up', 'stiff', 'superman',
+  'supino-fechado', 'supino-inclinado', 'supino-inclinado-halteres', 'supino-maquina', 'supino-reto',
+  'supino-reto-halteres', 'terra', 'triceps-coice', 'triceps-corda', 'triceps-frances', 'triceps-pulley',
+  'triceps-testa'
 ]);
 function exerciseAnim(id) {
   return ANIMATED.has(id) ? `img/ex/${id}.gif` : '';
