@@ -647,18 +647,21 @@ def ex_hip_thrust_uni(p):
 
 @exercise('elevacao-pelvica-maquina')
 def ex_hip_thrust_machine(p):
-    J, bar = thrust_body(p, v(158, 238), v(322, ANK_Y), 36, -4)
-    pivot = v(392, 176)
+    J, bar = thrust_body(p, v(158, 238), v(322, ANK_Y - 6), 36, -4)
+    # alavanca presa no banco (pivô baixo, atrás); almofada e anilhas ficam sobre o quadril
+    pivot = v(176, 292)
+    hub = add(bar, (0, -6))
     def back(cv):
+        cv.bar(v(40, FLOOR_Y - 2), v(360, FLOOR_Y - 2), 8)
+        cv.box(286, 304, 360, FLOOR_Y - 4, FRAME_D, FRAME_E, 2)           # plataforma dos pés
         bench(cv, 56, 166, 246)
-        cv.bar(v(380, FLOOR_Y), pivot, 12)
-        cv.bar(v(56, FLOOR_Y - 2), v(420, FLOOR_Y - 2), 8)
-        cv.bar(pivot, add(pivot, mul(norm(sub(pivot, bar)), 40)), 9, FRAME_D, FRAME_E)
-        plate_disc(cv, add(pivot, mul(norm(sub(pivot, bar)), 40)), 26)
-    def front(cv):
-        cv.bar(add(bar, (8, -4)), pivot, 9, FRAME_D, FRAME_E)
-        cv.rect_along(add(bar, (0, -5)), (1, 0), 24, 8, PAD, PAD_HI, 2)
+        cv.bar(v(176, FLOOR_Y), pivot, 12)
+        cv.bar(pivot, hub, 10, FRAME_D, FRAME_E)                          # braço da alavanca (lado de lá)
+        plate_disc(cv, hub, 32)
         cv.circle(pivot, 8, FRAME_C, FRAME_D, 2)
+    def front(cv):
+        cv.rect_along(add(bar, (0, -3)), (1, 0), 22, 8, PAD, PAD_HI, 2)  # almofada sobre o quadril
+        bar_end(cv, hub)
     J['An'] = arm(J['shoulder'], add(bar, (-14, -10)), -1)
     return J, {'back': back, 'front': front}, {'glute': 1, 'ham': 0.35}
 
