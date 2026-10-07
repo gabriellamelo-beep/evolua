@@ -24,9 +24,13 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => ap
 
 loadDB();
 applyTheme();
+driveHandleRedirect();
 route();
 if (DB.active) openRunner();
 stravaHandleRedirect();
+// Backup no Drive ao abrir/voltar ao app (só se o login ainda vale; sem sair da tela).
+setTimeout(() => driveSync({ quiet: true }), 1500);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') driveSync({ quiet: true }); });
 
 if (navigator.storage?.persist) navigator.storage.persist().catch(() => { });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

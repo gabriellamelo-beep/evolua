@@ -437,4 +437,4 @@ function renderSummary() {
     <button class="btn btn-primary btn-xl" data-act="sumClose">CONCLUIR</button>
   </div>`;
 }
-ACT.sumClose = () => { RT.summary = null; closeRunner(); go('#/'); };
+ACT.sumClose = () => { RT.summary = null; closeRunner(); go('#/'); driveSync({ interactive: true }); };
