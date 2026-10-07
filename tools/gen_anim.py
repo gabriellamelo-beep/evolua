@@ -472,16 +472,16 @@ def ex_leg_press_h(p):
     return J, {'back': machine}, {'quad': 1, 'glute': 0.4}
 
 
-@exercise('hack-squat', phase=phase_down)
+@exercise('hack-squat', phase=phase_down, k=0.9)
 def ex_hack(p):
     RD = norm((-0.5, -0.866))
-    A = v(282, 293)
-    hip = add(add(A, (-44, -148)), mul(RD, -78 * p))
+    A = v(304, 293)                      # pés à frente do quadril, na parte alta da plataforma
+    hip = add(add(A, (-66, -140)), mul(RD, -72 * p))
     sh = add(hip, mul(RD, TO))
     ant = perp(RD)
     def machine(cv):
         cv.bar(v(80, FLOOR_Y), v(420, FLOOR_Y), 10)
-        base = add(A, (-44, -148))
+        base = add(A, (-66, -140))
         r0 = add(add(base, mul(RD, -170)), mul(ant, -30))
         r1 = add(add(base, mul(RD, 140)), mul(ant, -30))
         cv.bar(r0, r1, 12)
@@ -492,7 +492,7 @@ def ex_hack(p):
         horn = add(add(hip, mul(RD, 10)), mul(ant, -40))
         cv.bar(add(pad_c, mul(ant, -8)), horn, 7)
         plate_disc(cv, horn, 30)
-        cv.poly([(236, 306), (330, 290), (330, 306)], FRAME_D, FRAME_E, 2)       # plataforma inclinada
+        cv.poly([(246, 306), (356, 288), (356, 306)], FRAME_D, FRAME_E, 2)       # plataforma inclinada
     def pads(cv):
         c = add(add(sh, mul(RD, 6)), mul(ant, 4))
         cv.rect_along(c, ant, 13, 7, PAD, PAD_HI, 2)
