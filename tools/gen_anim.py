@@ -1475,6 +1475,33 @@ def ex_cable_crunch(p):
     return J, {'back': lambda cv: (tower(120, 24, p)(cv), pulley(top)(cv), mat(cv)), 'front': cable(top, hand)}, {'abs': 1}
 
 
+@exercise('abdominal-maquina')
+def ex_machine_crunch(p):
+    hip = v(200, SEAT_HIP_Y)
+    sh = lean(hip, lerp(-6, 44, p), TO)
+    nd = norm(sub(sh, hip)); ant = perp(nd)
+    hand = add(add(sh, mul(ant, 12)), mul(nd, 10))              # alças junto aos ombros
+    elbow = add(add(sh, mul(ant, 20)), mul(nd, -40))             # cotovelos para baixo, à frente do tronco
+    pad = add(add(sh, mul(ant, 16)), mul(nd, -18))               # almofada no peito
+    pivot = add(hip, (18, -34))
+    Ln = seated_legs(hip)
+    def back(cv):
+        cv.bar(v(60, FLOOR_Y - 2), v(360, FLOOR_Y - 2), 8)
+        stool(cv, 130, 250)
+        cv.rect_along(add(lean(hip, -6, 52), (-20, 0)), polar(-96), 46, 8, PAD, PAD_HI, 2)   # encosto
+        tower(96, 40, p, 30)(cv)
+        cv.bar(v(96, 40), v(150, 40), 6); cv.line(v(150, 40), v(150, 150), 2.5, (60, 62, 68))
+        cv.bar(v(Ln['ankle'][0] + 4, FLOOR_Y), v(Ln['ankle'][0] + 4, Ln['ankle'][1] - 14), 8)
+    def front(cv):
+        cv.bar(pivot, pad, 8, FRAME_D, FRAME_E)
+        cv.bar(pad, hand, 6, FRAME_D, FRAME_E)
+        cv.rect_along(pad, nd, 14, 6, PAD, PAD_HI, 2)
+        cv.circle(pivot, 8, FRAME_C, FRAME_D, 2)
+        cv.circle(add(Ln['ankle'], (6, -14)), 8, PAD, PAD_HI, 2)                         # rolo dos pés
+    J = {'hip': hip, 'shoulder': sh, 'Ln': Ln, 'An': {'sh': sh, 'elbow': elbow, 'hand': hand}, 'head_tilt': lerp(0, 14, p)}
+    return J, {'back': back, 'front_leg': lambda cv: None, 'front': front}, {'abs': 1}
+
+
 @exercise('prancha')
 def ex_plank(p):
     ankle = v(110, 300)

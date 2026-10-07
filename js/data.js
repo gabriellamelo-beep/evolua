@@ -24,7 +24,7 @@ const DIVISIONS = ['Inferiores', 'Superiores', 'Full body', 'Push', 'Pull', 'Cor
 
 // Animações de execução geradas por tools/gen_anim.py (img/ex/<id>.gif).
 const ANIMATED = new Set([
-  'abdominal-crunch', 'abdominal-polia', 'afundo', 'agachamento-bulgaro', 'agachamento-goblet', 'agachamento-livre',
+  'abdominal-crunch', 'abdominal-maquina', 'abdominal-polia', 'afundo', 'agachamento-bulgaro', 'agachamento-goblet', 'agachamento-livre',
   'agachamento-smith', 'agachamento-sumo', 'barra-fixa', 'bird-dog', 'cadeira-extensora', 'cadeira-flexora',
   'coice-maquina', 'coice-polia', 'desenvolvimento-barra', 'desenvolvimento-halteres', 'desenvolvimento-maquina',
   'elevacao-frontal', 'elevacao-pelvica-maquina', 'elevacao-pernas', 'encolhimento', 'face-pull', 'flexao',
@@ -140,6 +140,7 @@ const EXERCISE_LIBRARY = [
   // Abdômen
   ['abdominal-crunch', 'Abdominal crunch', 'abdomen', '', 'Peso corporal', 'Deitada, eleve as escápulas do chão contraindo o abdômen.'],
   ['abdominal-polia', 'Abdominal na polia', 'abdomen', '', 'Polia', 'Ajoelhada, corda atrás da cabeça. Flexione o tronco em direção ao chão.'],
+  ['abdominal-maquina', 'Abdominal na máquina', 'abdomen', '', 'Máquina', 'Sentada, pés presos e mãos nas alças. Enrole o tronco levando o peito em direção ao quadril, sem puxar com os braços, e volte devagar.'],
   ['prancha', 'Prancha', 'abdomen', 'lombar ombros', 'Peso corporal', 'Antebraços no chão e corpo alinhado. Registre os segundos como repetições.'],
   ['elevacao-pernas', 'Elevação de pernas', 'abdomen', '', 'Peso corporal', 'Deitada ou suspensa. Eleve as pernas sem tirar a lombar do apoio.'],
   ['abdominal-bicicleta', 'Abdominal bicicleta', 'abdomen', '', 'Peso corporal', 'Alterne cotovelo em direção ao joelho oposto.'],
