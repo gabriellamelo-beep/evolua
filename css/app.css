@@ -416,7 +416,11 @@ html.is-running .tabbar { display: none; }
 .sheet.tall { height: 88vh; }
 .sheet-wrap.open .sheet-bg { opacity: 1; }
 .sheet-wrap.open .sheet { transform: none; }
-.sheet-grip { width: 40px; height: 5px; border-radius: 3px; background: var(--line-2); margin: 4px auto 12px; cursor: pointer; }
+.sheet-bg { cursor: pointer; }  /* sem isso o iPhone não entrega o toque fora da folha */
+.sheet-top { position: sticky; top: -6px; z-index: 3; display: flex; justify-content: center; align-items: center; height: 40px; margin: -6px -16px 2px; background: var(--surface); touch-action: none; cursor: grab; }
+.sheet-grip { width: 40px; height: 5px; border-radius: 3px; background: var(--line-2); }
+.sheet-x { position: absolute; right: 8px; top: 4px; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-2); color: var(--text-2); }
+.sheet-x .ic { width: 18px; height: 18px; }
 .sheet-body { display: flex; flex-direction: column; gap: 14px; }
 .sheet-title { font-size: 20px; font-weight: 750; }
 .sheet-actions { display: flex; gap: 10px; margin-top: 4px; }

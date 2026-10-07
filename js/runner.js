@@ -432,6 +432,7 @@ function renderSummary() {
     <section class="card"><div class="card-head"><h3>Músculos trabalhados</h3></div>
       <div class="map-mini-body">${bodyPair(lv, { small: true })}<div class="map-mini-list">${top.slice(0, 6).map(m => `<div><span>${mName(m)}</span><b>${fmtN(ms[m].sets, 1)}</b></div>`).join('')}<small>séries</small></div></div></section>
     ${cmp.filter(c => c.kind !== 'up').length ? `<section class="card"><div class="card-head"><h3>Demais exercícios</h3></div><div class="list">${cmp.filter(c => c.kind !== 'up').map(c => `<div class="row"><div class="row-main"><b>${esc(c.name)}</b><span class="muted">${esc(c.text)}</span></div></div>`).join('')}</div></section>` : ''}
+    ${backupDue() ? `<button class="backup-nudge" data-act="exportJson">${ic('download')}<span>${DB.profile.lastBackup ? `Último backup há ${daysBetween(DB.profile.lastBackup, new Date())} dias.` : 'Você ainda não fez backup.'} <b>Salvar backup agora</b></span></button>` : ''}
     <p class="muted small center">Sugestões de progressão aparecem no próximo treino. Seu plano não é alterado automaticamente.</p>
     <button class="btn btn-primary btn-xl" data-act="sumClose">CONCLUIR</button>
   </div>`;
