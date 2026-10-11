@@ -207,7 +207,7 @@ ACT.wkDelete = async el => {
   closeAllSheets();
   const w = getWorkout(el.dataset.id);
   if (!await confirmSheet({ title: `Excluir ${w.name}?`, text: 'O histórico de treinos realizados é mantido.', ok: 'Excluir', danger: true })) return;
-  DB.workouts = DB.workouts.filter(x => x.id !== w.id); saveDB(); EDIT = null; toast('Treino excluído'); go('#/treinos');
+  DB.workouts = DB.workouts.filter(x => x.id !== w.id); markDeleted('workouts', w.id); saveDB(); EDIT = null; toast('Treino excluído'); go('#/treinos');
 };
 
 /* ================= EDITOR DE TREINO ================= */
@@ -443,7 +443,7 @@ ACT.exDelete = async el => {
   closeAllSheets();
   const used = DB.sessions.some(s => s.exercises.some(x => x.exerciseId === e.id));
   if (!await confirmSheet({ title: `Excluir ${e.name}?`, text: used ? 'O exercício tem histórico: ele será ocultado da lista, mas os registros continuam nas estatísticas.' : 'Também será removido dos treinos em que aparece.', ok: 'Excluir', danger: true })) return;
-  if (used) e.archived = true; else DB.exercises = DB.exercises.filter(x => x.id !== e.id);
+  if (used) e.archived = true; else { DB.exercises = DB.exercises.filter(x => x.id !== e.id); markDeleted('exercises', e.id); }
   DB.workouts.forEach(w => w.items = w.items.filter(it => it.exerciseId !== e.id));
   saveDB(); rerender();
 };
@@ -776,7 +776,7 @@ ACT.sessAddEx = () => {
 ACT.sessDelete = async () => {
   const w = curSessSheet(), id = w._sid;
   if (!await confirmSheet({ title: 'Excluir este treino do histórico?', text: 'Esta ação não pode ser desfeita.', ok: 'Excluir', danger: true })) return;
-  DB.sessions = DB.sessions.filter(s => s.id !== id); SESS_EDIT = false; saveDB(); closeSheet(w); toast('Treino excluído'); rerender();
+  DB.sessions = DB.sessions.filter(s => s.id !== id); markDeleted('sessions', id); SESS_EDIT = false; saveDB(); closeSheet(w); toast('Treino excluído'); rerender();
 };
 
 /* ================= PREFERÊNCIAS ================= */

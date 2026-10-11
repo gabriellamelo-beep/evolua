@@ -205,5 +205,5 @@ ACT.bodySave = () => {
 ACT.bodyDelete = async () => {
   const id = BODYF.id; closeAllSheets();
   if (!await confirmSheet({ title: 'Excluir este registro de medidas?', ok: 'Excluir', danger: true })) return;
-  DB.body = DB.body.filter(x => x.id !== id); saveDB(); rerender();
+  DB.body = DB.body.filter(x => x.id !== id); markDeleted('body', id); saveDB(); rerender();
 };
