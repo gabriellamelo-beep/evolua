@@ -620,3 +620,8 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
 .body-mini { display: block; }
 .body-mini .card-head .ic { color: var(--text-3); }
 .body-mini .run-mini-body b { color: var(--text); }
+
+/* ===== Imagem para Stories ===== */
+.story-prev { display: flex; justify-content: center; }
+.story-prev canvas { display: block; height: min(46vh, 440px); width: auto; aspect-ratio: 9 / 16; border-radius: 16px; box-shadow: var(--shadow); }
+.story-prev.clear canvas { background: repeating-conic-gradient(#8a8a8a 0 25%, #b5b5b5 0 50%) 0 0 / 22px 22px; }

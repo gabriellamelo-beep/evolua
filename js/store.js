@@ -58,6 +58,10 @@ function migrate(db) {
   const removed = new Set(db.removedBuiltins);
   EXERCISE_LIBRARY.forEach(e => { if (!have.has(e.id) && !removed.has(e.id)) db.exercises.push({ ...e, secondary: [...e.secondary] }); });
   db.exercises.forEach(e => { if (e.builtin && !e.image) e.image = exerciseAnim(e.id); });
+  db.exercises.forEach(e => {
+    const lib = EXERCISE_LIBRARY.find(l => l.id === e.id);
+    if (e.builtin && lib && (RENAMED[e.id] || []).includes(e.name)) e.name = lib.name;
+  });
   db.workouts = db.workouts || [];
   db.sessions = db.sessions || [];
   db.runs = db.runs || [];

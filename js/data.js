@@ -45,6 +45,9 @@ function exerciseAnim(id) {
   return ANIMATED.has(id) ? `img/ex/${id}.gif` : '';
 }
 
+// Nomes antigos de exercícios da biblioteca; quem já tem o antigo salvo recebe o novo.
+const RENAMED = { 'crucifixo-invertido': ['Crucifixo invertido'] };
+
 // [id, nome, principal, secundários, equipamento, instruções]
 const EXERCISE_LIBRARY = [
   // Glúteos
@@ -121,7 +124,7 @@ const EXERCISE_LIBRARY = [
   ['elevacao-lateral', 'Elevação lateral', 'ombros', '', 'Halteres', 'Eleve os braços lateralmente até a altura dos ombros, cotovelos levemente flexionados.'],
   ['elevacao-lateral-polia', 'Elevação lateral na polia', 'ombros', '', 'Polia', 'Polia baixa do lado oposto. Eleve o braço lateralmente.'],
   ['elevacao-frontal', 'Elevação frontal', 'ombros', 'peito', 'Halteres', 'Eleve os braços à frente até a altura dos ombros.'],
-  ['crucifixo-invertido', 'Crucifixo invertido', 'ombros', 'costas', 'Máquina', 'No voador invertido, abra os braços para trás com foco no deltoide posterior.'],
+  ['crucifixo-invertido', 'Voador inverso (crucifixo invertido)', 'ombros', 'costas', 'Máquina', 'Sentada de frente para o apoio, abra os braços para trás com foco no deltoide posterior.'],
   ['face-pull', 'Face pull', 'ombros', 'costas', 'Polia', 'Corda na altura do rosto. Puxe abrindo as mãos ao lado das orelhas.'],
   ['remada-alta', 'Remada alta', 'ombros', 'costas biceps', 'Barra', 'Puxe a barra até a altura do peito com cotovelos acima das mãos.'],
   // Bíceps

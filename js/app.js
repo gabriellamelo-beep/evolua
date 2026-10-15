@@ -649,7 +649,7 @@ function evoRecords() {
 /* ================= HISTÓRICO & CALENDÁRIO ================= */
 function renderHistory() {
   const mode = DB.ui.histMode || 'list';
-  let html = pageHead('Histórico') + seg('histM', [['list', 'Lista'], ['cal', 'Calendário']], mode).replace('class="seg"', 'class="seg seg-wide"');
+  let html = pageHead('Histórico', `<button class="icon-btn" data-act="storyMake" data-kind="week" aria-label="Imagem do resumo para Stories">${ic('upload')}</button>`) + seg('histM', [['list', 'Lista'], ['cal', 'Calendário']], mode).replace('class="seg"', 'class="seg seg-wide"');
   if (mode === 'cal') return html + renderCalendar();
   const ss = sortedSessions().slice().reverse();
   if (!ss.length) return html + emptyState('history', 'Nenhum treino registrado', 'Os treinos concluídos aparecem aqui em ordem cronológica.');
@@ -736,7 +736,7 @@ function sessRender(w) {
         ${SESS_EDIT ? `<button class="btn btn-text btn-sm sess-add-set" data-act="sessAddSet" data-e="${ei}">${ic('plus')}Adicionar série</button>` : ''}
         ${e.notes ? `<p class="sess-note">${ic('note')}${esc(e.notes)}</p>` : ''}</div>`;
     }).join('')}
-    ${SESS_EDIT ? `<button class="btn btn-soft btn-block" data-act="sessAddEx">${ic('plus')}Adicionar exercício</button>` : ''}
+    ${SESS_EDIT ? `<button class="btn btn-soft btn-block" data-act="sessAddEx">${ic('plus')}Adicionar exercício</button>` : storyBtn('workout', s.id)}
     <div class="sheet-actions">
       <button class="btn btn-ghost danger" data-act="sessDelete">${ic('trash')}Excluir</button>
       <button class="btn ${SESS_EDIT ? 'btn-primary' : 'btn-ghost'}" data-act="sessEdit">${SESS_EDIT ? ic('check') + 'Concluir edição' : ic('edit') + 'Editar'}</button>
