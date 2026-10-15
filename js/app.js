@@ -736,7 +736,7 @@ function sessRender(w) {
         ${SESS_EDIT ? `<button class="btn btn-text btn-sm sess-add-set" data-act="sessAddSet" data-e="${ei}">${ic('plus')}Adicionar série</button>` : ''}
         ${e.notes ? `<p class="sess-note">${ic('note')}${esc(e.notes)}</p>` : ''}</div>`;
     }).join('')}
-    ${SESS_EDIT ? `<button class="btn btn-soft btn-block" data-act="sessAddEx">${ic('plus')}Adicionar exercício</button>` : ''}
+    ${SESS_EDIT ? `<button class="btn btn-soft btn-block" data-act="sessAddEx">${ic('plus')}Adicionar exercício</button>` : storyBtn('workout', s.id)}
     <div class="sheet-actions">
       <button class="btn btn-ghost danger" data-act="sessDelete">${ic('trash')}Excluir</button>
       <button class="btn ${SESS_EDIT ? 'btn-primary' : 'btn-ghost'}" data-act="sessEdit">${SESS_EDIT ? ic('check') + 'Concluir edição' : ic('edit') + 'Editar'}</button>

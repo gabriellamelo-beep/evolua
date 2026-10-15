@@ -213,6 +213,7 @@ ACT.runOpen = el => {
     </div>
     <label class="field"><span>Observações</span><textarea data-live="runNote" data-id="${r.id}" rows="2" placeholder="Como foi a corrida?">${esc(r.notes || '')}</textarea></label>
     ${r.stravaId ? `<a class="btn btn-ghost btn-block" href="https://www.strava.com/activities/${r.stravaId}" target="_blank" rel="noopener">Ver no Strava</a>` : ''}
+    ${storyBtn('run', r.id)}
     <div class="sheet-actions">
       <button class="btn btn-ghost danger" data-act="runDelete" data-id="${r.id}">${ic('trash')}Excluir</button>
       ${r.source === 'manual' ? `<button class="btn btn-ghost" data-act="runEdit" data-id="${r.id}">${ic('edit')}Editar</button>` : ''}
