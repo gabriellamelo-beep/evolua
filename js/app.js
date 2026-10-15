@@ -649,7 +649,7 @@ function evoRecords() {
 /* ================= HISTÓRICO & CALENDÁRIO ================= */
 function renderHistory() {
   const mode = DB.ui.histMode || 'list';
-  let html = pageHead('Histórico') + seg('histM', [['list', 'Lista'], ['cal', 'Calendário']], mode).replace('class="seg"', 'class="seg seg-wide"');
+  let html = pageHead('Histórico', `<button class="icon-btn" data-act="storyMake" data-kind="week" aria-label="Imagem do resumo para Stories">${ic('upload')}</button>`) + seg('histM', [['list', 'Lista'], ['cal', 'Calendário']], mode).replace('class="seg"', 'class="seg seg-wide"');
   if (mode === 'cal') return html + renderCalendar();
   const ss = sortedSessions().slice().reverse();
   if (!ss.length) return html + emptyState('history', 'Nenhum treino registrado', 'Os treinos concluídos aparecem aqui em ordem cronológica.');
