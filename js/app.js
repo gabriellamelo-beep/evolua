@@ -145,9 +145,11 @@ function renderHome() {
     html += `<section class="card"><div class="card-head"><h3>Insights</h3><a class="link" href="#/evolucao" data-act="evoTab" data-v="ins">Ver todos</a></div>${insightList(ins)}</section>`;
   }
 
-  if (DB.sessions.length >= 3) {
+  if (driveConnected() && driveCfg().needsLogin) {
+    html += `<button class="backup-nudge" data-act="driveNow">${ic('refresh')}<span>O backup no Google Drive está pausado. <b>Entrar na conta Google</b></span></button>`;
+  } else if (backupDue()) {
     const lb = p.lastBackup ? daysBetween(p.lastBackup, now) : null;
-    if (lb === null || lb > 14) html += `<button class="backup-nudge" data-act="exportJson">${ic('download')}<span>${lb === null ? 'Você ainda não fez backup dos seus dados.' : `Último backup há ${lb} dias.`} <b>Exportar agora</b></span></button>`;
+    html += `<button class="backup-nudge" data-act="exportJson">${ic('download')}<span>${lb === null ? 'Você ainda não fez backup dos seus dados.' : `Último backup há ${lb} dias.`} <b>Salvar backup agora</b></span></button>`;
   }
   return html;
 }
@@ -205,7 +207,7 @@ ACT.wkDelete = async el => {
   closeAllSheets();
   const w = getWorkout(el.dataset.id);
   if (!await confirmSheet({ title: `Excluir ${w.name}?`, text: 'O histórico de treinos realizados é mantido.', ok: 'Excluir', danger: true })) return;
-  DB.workouts = DB.workouts.filter(x => x.id !== w.id); saveDB(); EDIT = null; toast('Treino excluído'); go('#/treinos');
+  DB.workouts = DB.workouts.filter(x => x.id !== w.id); markDeleted('workouts', w.id); saveDB(); EDIT = null; toast('Treino excluído'); go('#/treinos');
 };
 
 /* ================= EDITOR DE TREINO ================= */
@@ -247,6 +249,7 @@ function edItem(it, i) {
   return `<li class="ed-item ${open ? 'open' : ''}" data-i="${i}">
     <div class="ed-row">
       <span class="drag" aria-label="Arrastar para reordenar">${ic('grip')}</span>
+      ${exThumb(ex)}
       <div class="ed-main" data-act="edToggle" data-i="${i}">
         <div class="ed-name">${esc(ex?.name || 'Exercício removido')}</div>
         <div class="ed-sub">${it.sets} × ${repRange(it)} · ${it.load !== '' && it.load != null ? fmtLoad(it.load) : 'sem carga inicial'} · ${fmtRest(it.rest)}</div>
@@ -364,13 +367,16 @@ function renderLibrary() {
     ${groupFilterChips('libG', g)}
     <div id="libList">${libListHTML(q, g)}</div>`;
 }
+function exThumb(e) {
+  return e?.image ? `<span class="ex-thumb"><img src="${esc(e.image)}" alt="" loading="lazy"></span>` : '';
+}
 function libListHTML(q, g) {
   const list = filterExercises(q, g);
   if (!list.length) return emptyState('search', 'Nada encontrado', 'Tente outro termo ou crie um exercício personalizado.');
   let cur = null, html = '';
   list.forEach(e => {
     if (e.primary !== cur) { if (cur) html += '</div>'; cur = e.primary; html += `<h4 class="group-h">${REGIONS[MUSCLES[cur].region]} · ${mName(cur)}</h4><div class="list card">`; }
-    html += `<div class="row" data-act="exOpen" data-id="${e.id}"><div class="row-main"><b>${esc(e.name)}${e.builtin ? '' : ' <span class="pill sm">pessoal</span>'}</b><span class="muted">${esc(e.equipment)}${e.secondary.length ? ' · ' + e.secondary.map(mName).join(', ') : ''}</span></div>${ic('right', 'chev')}</div>`;
+    html += `<div class="row" data-act="exOpen" data-id="${e.id}">${exThumb(e)}<div class="row-main"><b>${esc(e.name)}${e.builtin ? '' : ' <span class="pill sm">pessoal</span>'}</b><span class="muted">${esc(e.equipment)}${e.secondary.length ? ' · ' + e.secondary.map(mName).join(', ') : ''}</span></div>${ic('right', 'chev')}</div>`;
   });
   return html + '</div>';
 }
@@ -437,7 +443,7 @@ ACT.exDelete = async el => {
   closeAllSheets();
   const used = DB.sessions.some(s => s.exercises.some(x => x.exerciseId === e.id));
   if (!await confirmSheet({ title: `Excluir ${e.name}?`, text: used ? 'O exercício tem histórico: ele será ocultado da lista, mas os registros continuam nas estatísticas.' : 'Também será removido dos treinos em que aparece.', ok: 'Excluir', danger: true })) return;
-  if (used) e.archived = true; else DB.exercises = DB.exercises.filter(x => x.id !== e.id);
+  if (used) e.archived = true; else { DB.exercises = DB.exercises.filter(x => x.id !== e.id); markDeleted('exercises', e.id); }
   DB.workouts.forEach(w => w.items = w.items.filter(it => it.exerciseId !== e.id));
   saveDB(); rerender();
 };
@@ -727,8 +733,10 @@ function sessRender(w) {
       return `<div class="sess-ex"><div class="sess-ex-h"><b>${esc(name)}</b>${c && c.kind === 'up' ? `<span class="pill pos">${ic('up')}${esc(c.text)}</span>` : ''}</div>
         ${e.sets.map((x, i) => SESS_EDIT ? `<div class="sess-set edit"><span>${i + 1}</span><input type="number" inputmode="decimal" step="any" data-live="sessSet" data-e="${ei}" data-i="${i}" data-f="load" value="${x.load}"><i>${unit()} ×</i><input type="number" inputmode="numeric" data-live="sessSet" data-e="${ei}" data-i="${i}" data-f="reps" value="${x.reps}"><button class="icon-btn" data-act="sessDelSet" data-e="${ei}" data-i="${i}" aria-label="Remover série">${ic('x')}</button></div>`
         : `<div class="sess-set"><span>${i + 1}</span><b>${fmtLoad(x.load)} × ${x.reps}</b>${x.note ? `<em>${esc(x.note)}</em>` : ''}</div>`).join('')}
+        ${SESS_EDIT ? `<button class="btn btn-text btn-sm sess-add-set" data-act="sessAddSet" data-e="${ei}">${ic('plus')}Adicionar série</button>` : ''}
         ${e.notes ? `<p class="sess-note">${ic('note')}${esc(e.notes)}</p>` : ''}</div>`;
     }).join('')}
+    ${SESS_EDIT ? `<button class="btn btn-soft btn-block" data-act="sessAddEx">${ic('plus')}Adicionar exercício</button>` : ''}
     <div class="sheet-actions">
       <button class="btn btn-ghost danger" data-act="sessDelete">${ic('trash')}Excluir</button>
       <button class="btn ${SESS_EDIT ? 'btn-primary' : 'btn-ghost'}" data-act="sessEdit">${SESS_EDIT ? ic('check') + 'Concluir edição' : ic('edit') + 'Editar'}</button>
@@ -746,10 +754,29 @@ ACT.sessDelSet = el => {
   if (!e.sets.length) s.exercises.splice(+el.dataset.e, 1);
   saveDB(); sessRender(w);
 };
+ACT.sessAddSet = el => {
+  const w = curSessSheet(), s = DB.sessions.find(x => x.id === w._sid), e = s.exercises[+el.dataset.e];
+  const last = e.sets[e.sets.length - 1];
+  e.sets.push({ load: last ? +last.load || 0 : 0, reps: last ? +last.reps || 0 : 10, done: true, note: '' });
+  saveDB(); sessRender(w);
+};
+// Inclui exercícios esquecidos num treino já concluído; as séries entram como feitas, com a última carga registrada.
+ACT.sessAddEx = () => {
+  const w = curSessSheet();
+  openPicker({ multi: true, title: 'Adicionar exercícios', onPick: ids => {
+    const s = DB.sessions.find(x => x.id === w._sid); if (!s) return;
+    ids.forEach(id => {
+      const e = buildExercise(id);
+      e.sets.forEach(x => { x.load = +x.load || 0; x.reps = +x.reps || 10; x.done = true; });
+      s.exercises.push(e);
+    });
+    saveDB(); sessRender(w);
+  } });
+};
 ACT.sessDelete = async () => {
   const w = curSessSheet(), id = w._sid;
   if (!await confirmSheet({ title: 'Excluir este treino do histórico?', text: 'Esta ação não pode ser desfeita.', ok: 'Excluir', danger: true })) return;
-  DB.sessions = DB.sessions.filter(s => s.id !== id); SESS_EDIT = false; saveDB(); closeSheet(w); toast('Treino excluído'); rerender();
+  DB.sessions = DB.sessions.filter(s => s.id !== id); markDeleted('sessions', id); SESS_EDIT = false; saveDB(); closeSheet(w); toast('Treino excluído'); rerender();
 };
 
 /* ================= PREFERÊNCIAS ================= */
@@ -789,9 +816,10 @@ function renderPrefs() {
   </section>
   <h4 class="group-h">Dados</h4>
   <section class="card form">
-    <p class="muted small">Tudo fica salvo neste aparelho, no navegador. Exporte backups com frequência — e para levar seus dados para outro aparelho, exporte aqui e importe lá.${p.lastBackup ? ` Último backup: ${fmtDate(p.lastBackup)}.` : ''}</p>
+    <p class="muted small">Tudo fica salvo neste aparelho, no navegador. ${driveConnected() ? 'O backup vai sozinho para o seu Google Drive.' : 'Conecte o Google Drive para o backup ser automático, ou salve um arquivo toda semana (no celular, “Salvar em Arquivos”).'}${p.lastBackup ? ` Último backup: ${fmtDate(p.lastBackup)} às ${fmtTime(p.lastBackup)}.` : ''}</p>
     <div class="btn-col">
-      <button class="btn btn-soft" data-act="exportJson">${ic('download')}Exportar backup (JSON)</button>
+      <button class="btn ${driveConnected() ? 'btn-soft' : 'btn-primary'}" data-act="driveSetup">${ic('refresh')}${driveConnected() ? 'Backup no Google Drive: ativo' : 'Backup automático no Google Drive'}</button>
+      <button class="btn btn-soft" data-act="exportJson">${ic('download')}Salvar backup</button>
       <button class="btn btn-soft" data-act="exportCsv">${ic('download')}Exportar séries (CSV)</button>
       <label class="btn btn-soft">${ic('upload')}Importar backup<input type="file" accept=".json,application/json" data-bind="importJson" hidden></label>
       ${RT_INSTALL.evt ? `<button class="btn btn-primary" data-act="install">Instalar como app</button>` : ''}
@@ -821,11 +849,30 @@ ACT.prefNum = el => { const k = el.dataset.k; DB.profile[k] = Math.max(+el.datas
 ACT.prefArr = el => { const k = el.dataset.k, v = el.dataset.num ? +el.dataset.v : el.dataset.v, a = DB.profile[k]; DB.profile[k] = a.includes(v) ? a.filter(x => x !== v) : [...a, v]; saveDB(); rerender(); };
 ACT.prio = el => { const v = el.dataset.v; if (v === 'normal') delete DB.profile.priorities[el.dataset.m]; else DB.profile.priorities[el.dataset.m] = v; saveDB(); rerender(); };
 
-ACT.exportJson = () => {
+// Lembrete: há treinos registrados e o último backup tem mais de 7 dias (ou nunca foi feito).
+function backupDue() {
+  const lb = DB.profile.lastBackup;
+  if (driveConnected() && !driveCfg().needsLogin) return false;
+  return DB.sessions.length > 0 && (!lb || daysBetween(lb, new Date()) > 7);
+}
+function backupDone() {
   DB.profile.lastBackup = new Date().toISOString(); saveDB();
-  download(`evolua-backup-${dayKey(new Date())}.json`, JSON.stringify({ app: 'evolua', version: 1, exportedAt: new Date().toISOString(), data: DB }), 'application/json');
-  toast('Backup exportado');
-  if (parseHash().name === '') rerender();
+  toast('Backup salvo');
+  if (RT.summary) renderRunner(); else if (parseHash().name === '' || parseHash().name === 'preferencias') rerender();
+}
+// No celular abre o menu de compartilhar (Salvar em Arquivos → iCloud Drive / Google Drive); no computador, baixa o arquivo.
+ACT.exportJson = () => {
+  const name = `evolua-backup-${dayKey(new Date())}.json`;
+  const json = JSON.stringify({ app: 'evolua', version: 1, exportedAt: new Date().toISOString(), data: DB });
+  const file = typeof File === 'function' ? new File([json], name, { type: 'application/json' }) : null;
+  if (file && navigator.canShare?.({ files: [file] })) {
+    navigator.share({ files: [file], title: 'Backup do Evolua' }).then(backupDone).catch(err => {
+      if (err?.name !== 'AbortError') { download(name, json, 'application/json'); backupDone(); }
+    });
+    return;
+  }
+  download(name, json, 'application/json');
+  backupDone();
 };
 ACT.exportCsv = () => {
   const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -833,16 +880,16 @@ ACT.exportCsv = () => {
   sortedSessions().forEach(s => s.exercises.forEach(e => { const ex = getEx(e.exerciseId); e.sets.forEach((x, i) => rows.push([dayKey(s.start), fmtTime(s.start), q(s.workoutName), q(ex?.name || e.name), ex ? mName(ex.primary) : '', i + 1, String(x.load).replace('.', ','), unit(), x.reps, q(x.note)].join(';'))); }));
   download(`evolua-series-${dayKey(new Date())}.csv`, '﻿' + rows.join('\n'), 'text/csv');
 };
+async function importBackupData(obj, label = '') {
+  const data = obj.data || obj;
+  if (!Array.isArray(data.sessions) || !Array.isArray(data.workouts)) throw new Error('formato');
+  if (!await confirmSheet({ title: `Importar backup${label ? ' ' + label : ''}?`, text: `${data.sessions.length} treinos registrados e ${data.workouts.length} treinos montados. Os dados atuais deste aparelho serão substituídos.`, ok: 'Importar', danger: true })) return;
+  DB = migrate(data); saveDB(); applyTheme(); toast('Backup importado'); rerender();
+}
 BIND.importJson = async el => {
   const file = el.files[0]; el.value = '';
   if (!file) return;
-  try {
-    const obj = JSON.parse(await file.text());
-    const data = obj.data || obj;
-    if (!Array.isArray(data.sessions) || !Array.isArray(data.workouts)) throw new Error('formato');
-    if (!await confirmSheet({ title: 'Importar backup?', text: `${data.sessions.length} treinos registrados e ${data.workouts.length} treinos montados. Os dados atuais deste aparelho serão substituídos.`, ok: 'Importar', danger: true })) return;
-    DB = migrate(data); saveDB(); applyTheme(); toast('Backup importado'); rerender();
-  } catch (e) { console.error(e); toast('Arquivo inválido'); }
+  try { await importBackupData(JSON.parse(await file.text())); } catch (e) { console.error(e); toast('Arquivo inválido'); }
 };
 ACT.resetAll = async () => {
   if (!await confirmSheet({ title: 'Apagar todos os dados?', text: 'Treinos, histórico e preferências serão apagados deste aparelho. Exporte um backup antes se quiser guardar.', ok: 'Apagar tudo', danger: true })) return;

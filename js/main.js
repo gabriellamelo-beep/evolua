@@ -24,9 +24,14 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => ap
 
 loadDB();
 applyTheme();
+driveHandleRedirect();
 route();
 if (DB.active) openRunner();
 stravaHandleRedirect();
+// Sincronização pelo Drive: ao abrir, ao voltar ao app e a cada minuto com o app aberto.
+setTimeout(driveOnOpen, 1200);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') driveSync({ quiet: true }); });
+setInterval(() => { if (document.visibilityState === 'visible' && driveTokenOk()) driveSync({ quiet: true }); }, 60e3);
 
 if (navigator.storage?.persist) navigator.storage.persist().catch(() => { });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
